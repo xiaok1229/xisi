@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>习思想 · 沉浸式复习系统</title>
+<style>
+/* ====== Reset & Variables ====== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red-primary:#C41E3A;--red-deep:#8B0000;--red-light:#E8505B;
+  --gold:#D4A843;--gold-light:#F0D78C;
+  --bg-dark:#0f0f14;--bg-card:#1a1a24;--bg-card-hover:#222230;--bg-surface:#252535;
+  --text-primary:#f0e6d3;--text-secondary:#b0a894;--text-muted:#6b6570;
+  --border:#2a2a3a;--shadow:0 4px 24px rgba(0,0,0,.4);
+  --radius:12px;--radius-sm:8px;
+  --font-cn:"Noto Serif SC","Source Han Serif SC","STSong","SimSun","KaiTi",serif;
+  --font-ui:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  --transition:.3s cubic-bezier(.4,0,.2,1);
+}
+body{font-family:var(--font-ui);background:var(--bg-dark);color:var(--text-primary);min-height:100vh;overflow-x:hidden;line-height:1.7}
+/* ====== Background ====== */
+.bg-particles{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 20% 50%,rgba(196,30,58,.08)0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(212,168,67,.06)0%,transparent 60%),radial-gradient(ellipse at 50% 80%,rgba(196,30,58,.05)0%,transparent 60%)}
+.bg-particles::after{content:'';position:absolute;inset:0;background-image:radial-gradient(1px 1px at 10% 15%,rgba(255,255,255,.15),transparent),radial-gradient(1px 1px at 25% 35%,rgba(255,255,255,.1),transparent),radial-gradient(1px 1px at 40% 55%,rgba(255,255,255,.12),transparent),radial-gradient(1px 1px at 55% 25%,rgba(255,255,255,.08),transparent),radial-gradient(1px 1px at 70% 70%,rgba(255,255,255,.1),transparent),radial-gradient(1px 1px at 85% 45%,rgba(255,255,255,.07),transparent),radial-gradient(1px 1px at 15% 80%,rgba(255,255,255,.09),transparent),radial-gradient(1px 1px at 60% 10%,rgba(255,255,255,.11),transparent),radial-gradient(2px 2px at 30% 60%,rgba(212,168,67,.15),transparent)}
+/* ====== Layout ====== */
+.app-container{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px;padding-bottom:80px}
+/* ====== Header ====== */
+.header{text-align:center;padding:40px 20px 30px}
+.header .icon-row{font-size:48px;margin-bottom:8px;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.header h1{font-family:var(--font-cn);font-size:clamp(24px,4vw,36px);font-weight:700;background:linear-gradient(135deg,var(--red-light),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:3px}
+.header .subtitle{color:var(--text-secondary);font-size:14px;margin-top:6px;letter-spacing:2px}
+/* ====== Stats Bar ====== */
+.stats-bar{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;display:flex;align-items:center;gap:10px;min-width:130px;transition:var(--transition)}
+.stat-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:var(--shadow)}
+.stat-card .stat-icon{font-size:24px}
+.stat-card .stat-num{font-size:24px;font-weight:700;color:var(--gold)}
+.stat-card .stat-label{font-size:12px;color:var(--text-muted)}
+/* ====== Nav Tabs ====== */
+.nav-tabs{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;background:var(--bg-card);border-radius:var(--radius);padding:6px;border:1px solid var(--border);position:sticky;top:10px;z-index:100}
+.nav-tab{padding:10px 16px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;color:var(--text-secondary);transition:var(--transition);border:none;background:transparent;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.nav-tab:hover{color:var(--text-primary);background:var(--bg-surface)}
+.nav-tab.active{background:linear-gradient(135deg,var(--red-primary),var(--red-deep));color:#fff;font-weight:600;box-shadow:0 2px 12px rgba(196,30,58,.3)}
+/* ====== Panel ====== */
+.panel{display:none}
+.panel.active{display:block;animation:panelIn .35s ease}
+@keyframes panelIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+/* ====== Category Tags ====== */
+.cat-tags-scroll{overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 0 8px;margin-bottom:16px}
+.cat-tags-scroll::-webkit-scrollbar{display:none}
+.cat-tags{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+.cat-tags-scroll .cat-tags{justify-content:flex-start;margin-bottom:0;flex-wrap:nowrap;padding:0 4px}
+.cat-tag{padding:6px 14px;border-radius:20px;font-size:12px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--text-secondary);transition:var(--transition);white-space:nowrap}
+.cat-tag:hover,.cat-tag.active{border-color:var(--gold);color:var(--gold);background:rgba(212,168,67,.1)}
+/* ====== Question Cards ====== */
+.q-list{display:flex;flex-direction:column;gap:12px}
+.q-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;cursor:pointer;transition:var(--transition);position:relative;overflow:hidden}
+.q-card:hover{border-color:var(--red-light);box-shadow:var(--shadow)}
+.q-card.expanded{background:var(--bg-card-hover);border-color:var(--gold)}
+.q-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red-primary);border-radius:3px 0 0 3px;opacity:0;transition:opacity .3s}
+.q-card.expanded::before,.q-card:hover::before{opacity:1}
+.q-card .q-header{display:flex;align-items:flex-start;gap:12px}
+.q-card .q-num{background:var(--red-primary);color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;transition:all .3s}
+.q-card .q-num.done{background:var(--gold);color:#1a1a24}
+.q-card.expanded .q-num{transform:scale(1.1)}
+.q-card .q-title{flex:1;font-size:15px;line-height:1.5}
+.q-card .q-meta{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.q-card .q-badge{font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(196,30,58,.2);color:var(--red-light)}
+.q-card .q-badge.gold{background:rgba(212,168,67,.2);color:var(--gold-light)}
+.q-card .q-body{display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.q-card.expanded .q-body{display:block;animation:slideDown .35s ease}
+@keyframes slideDown{from{opacity:0;max-height:0}to{opacity:1;max-height:2000px}}
+.q-card .q-mark-btn{position:absolute;top:12px;right:12px;background:transparent;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;transition:var(--transition);z-index:2}
+.q-card .q-mark-btn.marked{color:var(--gold)}
+.q-card .q-mark-btn:hover{transform:scale(1.2)}
+/* ====== Flashcard ====== */
+.flashcard-container{perspective:1200px;max-width:700px;margin:0 auto;touch-action:pan-y}
+.flashcard{width:100%;min-height:380px;position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);cursor:pointer}
+.flashcard.flipped{transform:rotateY(180deg)}
+.flashcard::after{content:'';position:absolute;inset:-1px;border-radius:var(--radius);border:2px solid var(--gold);opacity:0;transition:opacity .3s;pointer-events:none;z-index:5}
+.flashcard.flipped::after{opacity:.4}
+.flashcard-face.flashcard-front{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--radius);padding:40px 30px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1px solid var(--border);background:var(--bg-card);background-image:radial-gradient(ellipse at center,rgba(196,30,58,.08)0%,transparent 70%)}
+.flashcard-back{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--radius);padding:30px 28px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;text-align:left;border:1px solid var(--border);background:var(--bg-card-hover);transform:rotateY(180deg);overflow-y:auto;background-image:radial-gradient(ellipse at center,rgba(212,168,67,.06)0%,transparent 70%)}
+.flashcard .fc-num{font-size:13px;color:var(--text-muted);margin-bottom:12px}
+.flashcard .fc-cat{font-size:12px;color:var(--gold);margin-bottom:8px}
+.flashcard .fc-question{font-size:18px;line-height:1.6;font-family:var(--font-cn)}
+.flashcard .fc-hint{font-size:13px;color:var(--text-muted);margin-top:20px}
+.flashcard .fc-answer{font-size:14px;color:var(--text-secondary);line-height:1.9}
+.flashcard .fc-answer strong{color:var(--gold-light)}
+.flashcard .fc-answer em{color:var(--red-light);font-style:normal}
+.fc-swipe-hint{text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px;display:none}
+.fc-controls{display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap}
+.fc-btn{padding:10px 20px;border-radius:20px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;font-size:14px;transition:var(--transition)}
+.fc-btn:hover{background:var(--bg-surface);border-color:var(--gold)}
+.fc-btn.primary{background:var(--red-primary);color:#fff;border-color:var(--red-primary)}
+.fc-btn.primary:hover{background:var(--red-deep)}
+.fc-btn.gold{background:var(--gold);color:#1a1a24;border-color:var(--gold);font-weight:600}
+.fc-btn.gold:hover{background:var(--gold-light)}
+.fc-progress{text-align:center;margin-top:16px;font-size:13px;color:var(--text-muted)}
+.fc-progress .bar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.fc-progress .bar-fill{height:100%;background:linear-gradient(90deg,var(--red-primary),var(--gold));border-radius:2px;transition:width .4s}
+/* ====== Quiz ====== */
+.quiz-container{max-width:750px;margin:0 auto}
+.quiz-setup{text-align:center}
+.quiz-setup h3{font-size:22px;margin-bottom:20px}
+.quiz-type-grid{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:24px}
+.quiz-type-btn{padding:14px 20px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;transition:var(--transition);text-align:center;min-width:100px}
+.quiz-type-btn:hover,.quiz-type-btn.selected{border-color:var(--gold);background:var(--bg-card-hover)}
+.quiz-type-btn .qt-icon{font-size:28px;display:block;margin-bottom:6px}
+.quiz-start-btn{padding:14px 40px;border-radius:var(--radius);background:linear-gradient(135deg,var(--red-primary),var(--red-deep));color:#fff;border:none;font-size:16px;cursor:pointer;font-weight:600;transition:var(--transition);box-shadow:0 4px 20px rgba(196,30,58,.3)}
+.quiz-start-btn:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(196,30,58,.5)}
+.quiz-timer{text-align:center;font-size:28px;font-weight:700;color:var(--gold);margin-bottom:12px;font-variant-numeric:tabular-nums}
+.quiz-timer.warning{color:var(--red-light);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.quiz-question-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px}
+.quiz-question-card .qq-num{font-size:13px;color:var(--gold);margin-bottom:6px}
+.quiz-question-card .qq-text{font-size:16px;margin-bottom:16px;line-height:1.6}
+.quiz-option{display:block;width:100%;text-align:left;padding:12px 16px;margin:6px 0;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text-primary);cursor:pointer;font-size:14px;transition:var(--transition)}
+.quiz-option:hover{border-color:var(--gold);background:rgba(212,168,67,.08)}
+.quiz-option.selected{border-color:var(--red-light);background:rgba(196,30,58,.15)}
+.quiz-option.correct{border-color:#2ecc71!important;background:rgba(46,204,113,.18)!important;color:#2ecc71!important}
+.quiz-option.wrong{border-color:var(--red-light)!important;background:rgba(196,30,58,.25)!important}
+.quiz-option.locked{pointer-events:none;opacity:.85}
+.quiz-option:active{transform:scale(.97)}
+.quiz-textarea{width:100%;min-height:120px;padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-surface);color:var(--text-primary);font-size:14px;resize:vertical;font-family:var(--font-ui)}
+.quiz-textarea:focus{outline:none;border-color:var(--gold)}
+.quiz-progress-dots{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+.quiz-progress-dots .dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s;cursor:pointer}
+.quiz-progress-dots .dot.done{background:var(--gold)}
+.quiz-progress-dots .dot.current{background:var(--red-light);transform:scale(1.3);box-shadow:0 0 6px rgba(196,30,58,.5)}
+/* ====== Quiz Result & Review ====== */
+.quiz-result{text-align:center;padding:30px 20px 20px;background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;animation:popIn .5s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes popIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.quiz-result .qr-score{font-size:64px;font-weight:700;color:var(--gold);text-shadow:0 0 30px rgba(212,168,67,.3)}
+.quiz-result .qr-grade{font-size:20px;margin:10px 0 16px}
+.review-filter{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.review-filter-btn{padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;font-size:13px;transition:var(--transition)}
+.review-filter-btn.active{background:var(--red-primary);color:#fff;border-color:var(--red-primary)}
+.quiz-review-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:10px;text-align:left}
+.quiz-review-card.was-correct{border-left:3px solid #2ecc71}
+.quiz-review-card.was-wrong{border-left:3px solid var(--red-light)}
+.quiz-review-card .rv-num{font-size:12px;color:var(--text-muted);margin-bottom:4px}
+.quiz-review-card .rv-q{font-size:14px;margin-bottom:8px;line-height:1.5}
+.quiz-review-card .rv-your{font-size:13px;color:var(--red-light);margin-bottom:4px}
+.quiz-review-card .rv-your.correct{color:#2ecc71}
+.quiz-review-card .rv-answer{font-size:13px;color:#2ecc71;margin-bottom:6px}
+.quiz-review-card .rv-exp{font-size:12px;color:var(--gold-light);background:rgba(212,168,67,.08);padding:8px 12px;border-radius:var(--radius-sm);line-height:1.6;margin-top:8px}
+/* ====== Mind Map ====== */
+.mindmap-container{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);min-height:500px;position:relative;overflow:hidden;background-image:radial-gradient(ellipse at center,rgba(196,30,58,.05)0%,transparent 70%)}
+#mindmap-svg{width:100%;height:620px;display:block}
+.mm-node{cursor:pointer;transition:all .3s}
+.mm-node:hover{filter:brightness(1.4)}
+.mm-node text{font-family:var(--font-ui);font-size:11px;fill:var(--text-secondary);text-anchor:middle;pointer-events:none}
+.mm-node.main-node text{font-size:15px;font-weight:700;fill:#fff}
+.mm-node.cat-node text.cat-label{font-size:12px;fill:var(--text-primary);font-weight:600}
+.mm-node.cat-node text.cat-count{font-size:10px;fill:var(--text-muted)}
+.mm-node .mm-ring{fill:none;stroke:var(--gold);stroke-width:.8;stroke-dasharray:3 4;opacity:.35}
+.mm-link{stroke:rgba(212,168,67,.2);stroke-width:1.2;fill:none;pointer-events:none}
+.mm-tooltip{position:absolute;background:var(--bg-surface);color:var(--text-primary);padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;pointer-events:none;border:1px solid var(--gold);box-shadow:var(--shadow);opacity:0;transition:opacity .2s;white-space:nowrap;z-index:10}
+/* ====== Back to Top ====== */
+.back-to-top{position:fixed;bottom:80px;right:20px;width:44px;height:44px;border-radius:50%;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-size:20px;cursor:pointer;z-index:50;opacity:0;transform:translateY(20px);transition:all .3s;pointer-events:none;box-shadow:var(--shadow)}
+.back-to-top.visible{opacity:1;transform:translateY(0);pointer-events:auto}
+.back-to-top:hover{background:var(--bg-surface);border-color:var(--gold)}
+/* ====== Mobile Dock ====== */
+.mobile-dock{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);z-index:100;padding:6px 8px env(safe-area-inset-bottom,8px)}
+.mobile-dock-inner{display:flex;justify-content:space-around}
+.dock-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 10px;border-radius:var(--radius-sm);cursor:pointer;border:none;background:transparent;color:var(--text-muted);font-size:10px;transition:var(--transition)}
+.dock-item.active{color:var(--gold)}
+.dock-item .dock-icon{font-size:20px}
+/* ====== Focus Mode ====== */
+.focus-overlay{position:fixed;inset:0;background:var(--bg-dark);z-index:200;display:none;flex-direction:column;padding:20px;overflow-y:auto}
+.focus-overlay.active{display:flex;animation:fadeIn .3s ease}
+.focus-close{position:fixed;top:16px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-size:18px;cursor:pointer;z-index:201;transition:var(--transition)}
+.focus-close:hover{background:var(--bg-surface);border-color:var(--gold)}
+.focus-nav{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-size:20px;cursor:pointer;z-index:201;transition:var(--transition);display:flex;align-items:center;justify-content:center}
+.focus-nav:hover{background:var(--bg-surface);border-color:var(--gold);color:var(--gold)}
+.focus-nav-prev{left:24px}
+.focus-nav-next{right:24px}
+.focus-counter{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:201;font-size:13px;color:var(--text-muted);background:var(--bg-card);padding:6px 16px;border-radius:20px;border:1px solid var(--border)}
+.focus-title{font-family:var(--font-cn);font-size:22px;text-align:center;margin:30px 0 20px;color:var(--gold)}
+.focus-content{max-width:700px;margin:0 auto;font-size:15px;line-height:2;color:var(--text-secondary)}
+.focus-content strong{color:var(--gold-light)}
+.focus-content em{color:var(--red-light);font-style:normal}
+/* ====== Toast Queue ====== */
+.toast-container{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--bg-card);color:var(--text-primary);border:1px solid var(--gold);border-radius:var(--radius);padding:10px 20px;font-size:14px;box-shadow:var(--shadow);animation:toastIn .3s ease;pointer-events:auto}
+@keyframes toastIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+/* ====== Focus Btn on Card ====== */
+.q-focus-btn{position:absolute;top:12px;right:44px;background:transparent;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;z-index:2;transition:var(--transition);opacity:0}
+.q-card:hover .q-focus-btn,.q-card.expanded .q-focus-btn{opacity:1}
+.q-focus-btn:hover{color:var(--gold-light);transform:scale(1.2)}
+/* ====== Empty State ====== */
+.wrong-empty{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.wrong-empty .we-icon{font-size:60px;margin-bottom:16px}
+/* ====== Search ====== */
+.search-box{display:flex;gap:8px;max-width:500px;margin:0 auto 20px}
+.search-box input{flex:1;padding:10px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:14px}
+.search-box input:focus{outline:none;border-color:var(--gold)}
+.search-box button{padding:10px 20px;border-radius:var(--radius-sm);background:var(--red-primary);color:#fff;border:none;cursor:pointer;font-size:14px;transition:var(--transition)}
+.search-box button:hover{background:var(--red-deep)}
+.section-title{text-align:center;margin-bottom:16px;font-size:20px;font-weight:600;color:var(--gold);letter-spacing:1px}
+/* ====== Responsive ====== */
+@media(max-width:768px){
+  .header{padding:20px 12px 12px}
+  .header .icon-row{font-size:36px}
+  .nav-tabs{display:none}
+  .stats-bar{gap:6px}
+  .stat-card{padding:10px 12px;min-width:80px;gap:6px}
+  .stat-card .stat-icon{font-size:18px}
+  .stat-card .stat-num{font-size:18px}
+  .stat-card .stat-label{font-size:10px}
+  .flashcard{min-height:300px}
+  .flashcard-face.flashcard-front{padding:24px 16px}
+  .flashcard .fc-question{font-size:16px}
+  .flashcard-back{padding:20px 16px}
+  .mobile-dock{display:block}
+  .back-to-top{bottom:100px;right:12px;width:38px;height:38px;font-size:16px}
+  .fc-swipe-hint{display:block}
+  .cat-tags{flex-wrap:nowrap}
+  .quiz-type-btn{padding:10px 14px;min-width:80px;font-size:12px}
+  .quiz-type-btn .qt-icon{font-size:22px}
+  .quiz-result .qr-score{font-size:48px}
+  .app-container{padding-bottom:100px}
+  .toast-container{bottom:120px}
+  .focus-nav{width:36px;height:36px;font-size:16px}
+  .focus-nav-prev{left:8px}
+  .focus-nav-next{right:8px}
+  .focus-title{font-size:18px;padding:0 50px}
+}
+/* ====== Print ====== */
+@media print{
+  .bg-particles,.nav-tabs,.mobile-dock,.back-to-top,.fc-controls,.stats-bar,.search-box,.cat-tags,.cat-tags-scroll,.q-mark-btn,.q-focus-btn,.toast-container{display:none!important}
+  body{background:#fff;color:#000;font-size:13px}
+  .q-card{background:#fff;border:1px solid #ccc;break-inside:avoid;page-break-inside:avoid}
+  .q-card .q-body{display:block!important}
+  .q-card .q-num{background:#000;color:#fff}
+  .app-container{max-width:100%;padding:0}
+  .header h1{-webkit-text-fill-color:#C41E3A;background:none}
+  .panel{display:block!important;margin-bottom:20px}
+  .q-card .q-title,.q-card .q-answer{color:#000}
+  .q-card .q-answer strong{color:#C41E3A}
+}
+/* ====== Reduced Motion ====== */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+/* ====== Focus Mode Typography ====== */
+.focus-content{font-family:var(--font-cn)}
+.focus-content p{margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="bg-particles"></div>
+<div class="app-container" id="appContainer">
+
+<header class="header">
+  <div class="icon-row">📖</div>
+  <h1>习近平新时代中国特色社会主义思想</h1>
+  <p class="subtitle">考 试 复 习 沉 浸 式 系 统</p>
+</header>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat-card"><span class="stat-icon">📚</span><div><div class="stat-num" id="totalCount">39</div><div class="stat-label">考点总数</div></div></div>
+  <div class="stat-card"><span class="stat-icon">✅</span><div><div class="stat-num" id="masteredCount">0</div><div class="stat-label">已掌握</div></div></div>
+  <div class="stat-card"><span class="stat-icon">🃏</span><div><div class="stat-num" id="flashcardCount">0</div><div class="stat-label">已背诵</div></div></div>
+  <div class="stat-card"><span class="stat-icon">📝</span><div><div class="stat-num" id="quizCount">0</div><div class="stat-label">测验次数</div></div></div>
+  <div class="stat-card"><span class="stat-icon">❌</span><div><div class="stat-num" id="wrongCount">0</div><div class="stat-label">错题数</div></div></div>
+</div>
+
+<nav class="nav-tabs" id="navTabs">
+  <button class="nav-tab active" data-panel="browse">📋 考点浏览</button>
+  <button class="nav-tab" data-panel="flashcard">🃏 闪卡背诵</button>
+  <button class="nav-tab" data-panel="quiz">📝 模拟测验</button>
+  <button class="nav-tab" data-panel="mindmap">🗺️ 知识图谱</button>
+  <button class="nav-tab" data-panel="wrongbook">❌ 错题回顾</button>
+  <button class="nav-tab" data-panel="examInfo">ℹ️ 考试须知</button>
+</nav>
+
+<!-- PANELS -->
+<div class="panel active" id="panel-browse">
+  <div class="search-box"><input type="text" placeholder="🔍 搜索考点关键词..." id="searchInput"><button onclick="filterQuestions()">搜索</button></div>
+  <div class="cat-tags-scroll" id="catTagsScroll"><div class="cat-tags" id="catTags"></div></div>
+  <div class="q-list" id="qList"></div>
+</div>
+
+<div class="panel" id="panel-flashcard">
+  <div class="cat-tags-scroll"><div class="cat-tags" id="fcCatTags"></div></div>
+  <div class="flashcard-container" id="flashcardContainer">
+    <div class="flashcard" id="flashcard" onclick="flipFlashcard()">
+      <div class="flashcard-face flashcard-front"><div class="fc-num" id="fcNum"></div><div class="fc-cat" id="fcCat"></div><div class="fc-question" id="fcQuestion"></div><div class="fc-hint">👆 点击翻转 / 上下滑动切换</div></div>
+      <div class="flashcard-face flashcard-back"><div class="fc-num">📝 参考答案</div><div class="fc-answer" id="fcAnswer"></div></div>
+    </div>
+    <div class="fc-swipe-hint">⬆️ 上滑=掌握 ⬇️ 下滑=不确定 ←→ 切换卡片</div>
+    <div class="fc-controls">
+      <button class="fc-btn" onclick="prevFlashcard()">◀</button>
+      <button class="fc-btn gold" onclick="markMastered()">✅ 已掌握</button>
+      <button class="fc-btn" onclick="flipFlashcard()">🔍 翻转</button>
+      <button class="fc-btn" onclick="markUnsure()">❓ 不确定</button>
+      <button class="fc-btn primary" onclick="nextFlashcard()">▶</button>
+    </div>
+    <div class="fc-progress"><span id="fcProgressText">1/39</span><div class="bar"><div class="bar-fill" id="fcBar" style="width:2.5%"></div></div></div>
+  </div>
+</div>
+
+<div class="panel" id="panel-quiz">
+  <div class="quiz-container" id="quizContainer">
+    <div class="quiz-setup" id="quizSetup">
+      <h3>📝 选择测验模式</h3>
+      <div class="quiz-type-grid" id="quizTypeGrid">
+        <button class="quiz-type-btn selected" data-type="single"><span class="qt-icon">🔤</span>单选题<br><small>20题×1分</small></button>
+        <button class="quiz-type-btn" data-type="judge"><span class="qt-icon">⚖️</span>判断题<br><small>15题×1分</small></button>
+        <button class="quiz-type-btn" data-type="short"><span class="qt-icon">📄</span>简答题<br><small>5题×5分</small></button>
+        <button class="quiz-type-btn" data-type="essay"><span class="qt-icon">✍️</span>论述题<br><small>2题×10分</small></button>
+        <button class="quiz-type-btn" data-type="combined"><span class="qt-icon">🏆</span>综合模拟<br><small>全题型</small></button>
+      </div>
+      <button class="quiz-start-btn" onclick="startQuiz()">🚀 开始测验</button>
+    </div>
+    <div id="quizActive" style="display:none"></div>
+    <div id="quizResult" style="display:none"></div>
+  </div>
+</div>
+
+<div class="panel" id="panel-mindmap">
+  <div class="mindmap-container"><svg id="mindmap-svg" viewBox="0 0 1100 620"></svg></div>
+  <p style="text-align:center;margin-top:12px;color:var(--text-muted);font-size:12px">💡 点击节点可跳转到对应考点详情</p>
+</div>
+
+<div class="panel" id="panel-wrongbook">
+  <div class="wrong-empty" id="wrongEmpty"><div class="we-icon">🎉</div><h3>暂无错题</h3><p>做测验时答错的题目会自动收集到这里</p></div>
+  <div class="q-list" id="wrongList" style="display:none"></div>
+  <div style="text-align:center;margin-top:16px" id="wrongClear" hidden><button class="fc-btn" onclick="clearWrongBook()">🗑️ 清空错题本</button></div>
+</div>
+
+<div class="panel" id="panel-examInfo">
+  <div class="q-card" style="cursor:default">
+    <h3 style="color:var(--gold);margin-bottom:16px">📋 题型结构</h3>
+    <table style="width:100%;border-collapse:collapse;color:var(--text-secondary)">
+      <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px">单选题</td><td>20题×1分=<b style="color:var(--gold-light)">20分</b></td></tr>
+      <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px">判断题</td><td>15题×1分=<b style="color:var(--gold-light)">15分</b></td></tr>
+      <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px">简答题</td><td>5题×5分=<b style="color:var(--gold-light)">25分</b></td></tr>
+      <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px">论述题</td><td>2题×10分=<b style="color:var(--gold-light)">20分</b></td></tr>
+      <tr><td style="padding:8px">材料分析题</td><td>1题×20分=<b style="color:var(--gold-light)">20分</b></td></tr>
+    </table>
+  </div>
+  <div class="q-card" style="cursor:default;margin-top:12px">
+    <h3 style="color:var(--gold);margin-bottom:12px">💡 答题策略</h3>
+    <ul style="color:var(--text-secondary);padding-left:20px;line-height:2">
+      <li>先审题，拟定题目，分段论述</li><li>明确问题表现和解决策略，体现逻辑性</li>
+      <li>引用习思想相关论述作为<b style="color:var(--gold-light)">加分点</b></li>
+      <li>材料分析题字数<b style="color:var(--red-light)">不少于800字</b></li>
+    </ul>
+  </div>
+</div>
+
+</div><!-- .app-container -->
+
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="返回顶部">⬆</button>
+<div class="toast-container" id="toastContainer"></div>
+
+<nav class="mobile-dock" id="mobileDock">
+  <div class="mobile-dock-inner">
+    <button class="dock-item active" data-panel="browse"><span class="dock-icon">📋</span>考点</button>
+    <button class="dock-item" data-panel="flashcard"><span class="dock-icon">🃏</span>闪卡</button>
+    <button class="dock-item" data-panel="quiz"><span class="dock-icon">📝</span>测验</button>
+    <button class="dock-item" data-panel="mindmap"><span class="dock-icon">🗺️</span>图谱</button>
+    <button class="dock-item" data-panel="wrongbook"><span class="dock-icon">❌</span>错题</button>
+  </div>
+</nav>
+
+<div class="focus-overlay" id="focusOverlay">
+  <button class="focus-close" onclick="closeFocusMode()">✕</button>
+  <button class="focus-nav focus-nav-prev" id="focusNavPrev" onclick="focusNavigate(-1)">◀</button>
+  <button class="focus-nav focus-nav-next" id="focusNavNext" onclick="focusNavigate(1)">▶</button>
+  <div class="focus-counter" id="focusCounter"></div>
+  <div class="focus-title" id="focusTitle"></div>
+  <div class="focus-content" id="focusContent"></div>
+</div>
+
+<script>
+"use strict";
+// ====== DATA ======
+const categories=[{id:'all',name:'全部',icon:'📚'},{id:'overview',name:'总论',icon:'🏛️'},{id:'socialism',name:'中国特色社会主义',icon:'🚩'},{id:'dream_modern',name:'中国梦·现代化',icon:'🌟'},{id:'party_lead',name:'党的领导',icon:'🕯️'},{id:'people',name:'人民立场·共富',icon:'🤝'},{id:'reform_econ',name:'改革·经济',icon:'📈'},{id:'democracy_law',name:'民主·法治',icon:'⚖️'},{id:'culture',name:'文化·意识形态',icon:'🎭'},{id:'livelihood',name:'民生·社会',icon:'🏠'},{id:'ecology',name:'生态文明',icon:'🌿'},{id:'security',name:'国家安全·强军',icon:'🛡️'},{id:'unity_diplomacy',name:'统一·外交',icon:'🌏'},{id:'party_build',name:'党的建设',icon:'🔨'}];
+
+const questions=[
+{id:1,cat:'overview',title:'习近平新时代中国特色社会主义思想创立的时代背景是什么？',type:'简答/论述',
+ answer:`<strong>（1）世界百年未有之大变局加速演进。</strong>（2）中华民族伟大复兴进入关键时期。（3）中国式现代化全面推进拓展。（4）科学社会主义在21世纪的中国焕发新的蓬勃生机。（5）中国共产党自我革命开辟新的境界。<p style="color:var(--text-muted);margin-top:8px;font-size:12px">📌 若以论述题考查，每点展开一句话。</p>`,
+ keyPoints:['世界百年未有之大变局','中华民族伟大复兴关键时期','中国式现代化全面推进','科学社会主义焕发生机','党的自我革命']},
+{id:2,cat:'overview',title:'习近平新时代中国特色社会主义思想回答了哪些时代课题？包含哪些内容？',type:'简答',
+ answer:`<strong>（1）时代课题：</strong>新时代坚持和发展什么样的中国特色社会主义、怎样坚持和发展中国特色社会主义，建设什么样的社会主义现代化强国、怎样建设社会主义现代化强国，建设什么样的长期执政的马克思主义政党、怎样建设长期执政的马克思主义政党。<strong>（2）主要内容：</strong>"十个明确""十四个坚持""十三个方面成就"。<strong>（3）</strong>党的二十大提出的<strong>"六个必须坚持"</strong>是世界观和方法论。`,
+ keyPoints:['十个明确','十四个坚持','十三个方面成就','六个必须坚持']},
+{id:3,cat:'overview',title:'"六个必须坚持"的具体内容是什么？（世界观和方法论）',type:'简答',
+ answer:`<strong>（1）坚持人民至上</strong>——根本价值立场，体现历史唯物主义群众史观。<strong>（2）坚持自信自立</strong>——内在精神特质，体现客观规律性和主观能动性的有机结合。<strong>（3）坚持守正创新</strong>——鲜明理论品格，体现变与不变、继承与发展的内在联系。<strong>（4）坚持问题导向</strong>——重要实践要求，体现矛盾的普遍性和客观性。<strong>（5）坚持系统观念</strong>——基本思想和工作方法，体现辩证唯物主义普遍联系的原理。<strong>（6）坚持胸怀天下</strong>——境界格局，体现马克思主义追求人类进步和解放的崇高理想。`,
+ keyPoints:['人民至上','自信自立','守正创新','问题导向','系统观念','胸怀天下']},
+{id:4,cat:'overview',title:'习近平新时代中国特色社会主义思想的历史地位是什么？',type:'简答',
+ answer:`<strong>（1）</strong>继承和发展马克思列宁主义、毛泽东思想、邓小平理论、"三个代表"重要思想、科学发展观，是<strong>马克思主义在当代中国发展的最新理论成果</strong>，开辟了马克思主义中国化时代化新境界。<strong>（2）</strong>把马克思主义基本原理<strong>同中国具体实际相结合、同中华优秀传统文化相结合</strong>，是中华文化和中国精神的时代精华。<strong>（3）</strong>是全党全国各族人民为实现中华民族伟大复兴而奋斗的<strong>行动指南</strong>，是新时代党和国家事业发展的根本遵循。`,
+ keyPoints:['最新理论成果','两个结合','行动指南','根本遵循']},
+{id:5,cat:'socialism',title:'为什么说中国特色社会主义是社会主义而不是其他什么主义？',type:'简答',
+ answer:`<strong>（1）</strong>中国特色社会主义是<strong>科学社会主义理论逻辑和中国社会发展历史逻辑的辩证统一</strong>。<strong>（2）</strong>科学社会主义是人类历史上的伟大创造。<strong>（3）</strong>中国特色社会主义<strong>坚持了科学社会主义基本原则</strong>。之所以是社会主义，就是因为我们始终坚持科学社会主义基本原则，并根据新的时代条件赋予其鲜明的中国特色。<strong>（4）</strong>中国特色社会主义写出了科学社会主义的<strong>"新版本"</strong>。`,
+ keyPoints:['科学社会主义基本原则','中国特色','新版本']},
+{id:6,cat:'socialism',title:'中国特色社会主义新时代的科学内涵和意义是什么？',type:'简答/论述',
+ answer:`<strong>科学内涵（五个时代）：</strong>①承前启后、继往开来、继续夺取中国特色社会主义伟大胜利的时代；②决胜全面建成小康社会、进而全面建设社会主义现代化强国的时代；③全国各族人民团结奋斗、不断创造美好生活、逐步实现全体人民共同富裕的时代；④全体中华儿女勠力同心、奋力实现中华民族伟大复兴中国梦的时代；⑤我国不断为人类作出更大贡献的时代。<strong>意义（三个意味着）：</strong>①意味着中华民族迎来了从站起来、富起来到强起来的伟大飞跃；②意味着科学社会主义在21世纪的中国焕发出强大生机活力；③意味着拓展了发展中国家走向现代化的途径，贡献了中国智慧和中国方案。`,
+ keyPoints:['五个时代','三个意味着','站起来富起来强起来']},
+{id:7,cat:'dream_modern',title:'中华民族伟大复兴中国梦的内涵是什么？',type:'简答',
+ answer:`<strong>（1）国家富强</strong>——全面建成富强民主文明和谐美丽的社会主义现代化强国；<strong>（2）民族振兴</strong>——使中华民族更加坚强有力地自立于世界民族之林；<strong>（3）人民幸福</strong>——坚持以人民为中心，增进人民福祉，促进人的全面发展，朝着共同富裕方向稳步前进。`,
+ keyPoints:['国家富强','民族振兴','人民幸福']},
+{id:8,cat:'dream_modern',title:'中国式现代化理论体系的内容是什么？',type:'简答/论述',
+ answer:`<strong>（1）五大中国特色：</strong>①人口规模巨大的现代化|②全体人民共同富裕的现代化|③物质文明和精神文明相协调的现代化|④人与自然和谐共生的现代化|⑤走和平发展道路的现代化。<strong>（2）本质要求：</strong>坚持中国共产党领导，坚持中国特色社会主义，实现高质量发展，发展全过程人民民主，丰富人民精神世界，实现全体人民共同富裕，促进人与自然和谐共生，推动构建人类命运共同体，创造人类文明新形态。<strong>（3）重大意义：</strong>创造了人类文明新形态。`,
+ keyPoints:['五大中国特色','本质要求','人类文明新形态']},
+{id:9,cat:'party_lead',title:'如何理解中国共产党领导是中国特色社会主义制度的最大优势？',type:'简答',
+ answer:`<strong>（1）理论优势：</strong>以马克思主义作为行动指南，不断推进马克思主义中国化时代化。<strong>（2）自身优势：</strong>中国共产党的自身优势是中国特色社会主义制度优势的主要来源。<strong>（3）显著优势：</strong>能够集中全党全国力量、凝聚全民族共同意志，发挥<strong>总揽全局、协调各方</strong>的作用。`,
+ keyPoints:['理论优势','自身优势','总揽全局协调各方']},
+{id:10,cat:'party_lead',title:'如何维护党中央的权威和集中统一领导？',type:'简答',
+ answer:`<strong>（1）</strong>是成熟的马克思主义执政党的<strong>重大建党原则</strong>。<strong>（2）</strong>必须坚决贯彻党的理论、路线方针政策和党中央决策部署。<strong>（3）最关键的是<strong>坚决维护习近平同志党中央的核心、全党的核心地位</strong>。<strong>（4）</strong>同坚持党的民主集中制是完全一致的。`,
+ keyPoints:['重大建党原则','两个维护','民主集中制']},
+{id:11,cat:'party_lead',title:'党的领导制度的制度体系包含哪些内容？其地位和关系是什么？',type:'简答',
+ answer:`<strong>六大制度：</strong>①不忘初心、牢记使命|②坚定维护党中央权威和集中统一领导|③健全党的全面领导|④为人民执政、靠人民执政|⑤提高党的执政能力和领导水平|⑥全面从严治党。<strong>关系：</strong>彼此支撑、相互联系，共同构筑党的领导制度体系大厦。<strong>地位：</strong>是中国特色社会主义制度体系的核心，是国家治理体系和治理能力现代化的关键。`,
+ keyPoints:['六大制度','制度体系核心','国家治理关键']},
+{id:12,cat:'people',title:'人民立场是中国共产党的根本政治立场，如何坚持人民立场？',type:'简答',
+ answer:`<strong>（1）</strong>就要始终牢记党的<strong>初心和使命</strong>。<strong>（2）</strong>就要始终保持党同人民群众的<strong>血肉联系</strong>。<strong>（3）</strong>就要<strong>热爱人民、尊重人民、敬畏人民</strong>。`,
+ keyPoints:['初心使命','血肉联系','热爱尊重敬畏人民']},
+{id:13,cat:'people',title:'扎实推进共同富裕必须坚持的正确原则和总的思路是什么？',type:'简答',
+ answer:`<strong>正确原则：</strong>鼓励勤劳创新致富、坚持基本经济制度、尽力而为量力而行、坚持循序渐进。<strong>总的思路：</strong>以人民为中心，在高质量发展中促进共同富裕，正确处理效率和公平的关系，构建初次分配、再分配、三次分配协调配套的基础性制度安排，形成<strong>中间大、两头小的橄榄型分配结构</strong>。`,
+ keyPoints:['勤劳创新致富','基本经济制度','橄榄型分配结构']},
+{id:14,cat:'reform_econ',title:'如何坚持全面深化改革的正确方向？',type:'简答',
+ answer:`<strong>（1）改革的方向：</strong>必须坚持和改善党的全面领导、坚持和完善中国特色社会主义制度。<strong>（2）改革为了谁：</strong>必须坚持以人民为中心，促进社会公平正义、增进人民福祉。<strong>（3）改革的动力：</strong>必须有利于进一步解放思想、解放和发展社会生产力、解放和增强社会活力。`,
+ keyPoints:['党的全面领导','以人民为中心','三个解放']},
+{id:15,cat:'reform_econ',title:'如何准确理解全面深化改革的总目标？',type:'简答',
+ answer:`<strong>总目标：</strong>完善和发展中国特色社会主义制度、推进国家治理体系和治理能力现代化。<strong>"完善和发展中国特色社会主义制度"</strong>规定了改革的根本方向。<strong>"推进国家治理体系和治理能力现代化"</strong>明确了改革的鲜明指向和时代要求，把制度优势转化为国家治理效能。`,
+ keyPoints:['完善和发展制度','国家治理现代化','制度优势→治理效能']},
+{id:16,cat:'reform_econ',title:'新发展理念的科学内涵和具体实践要求',type:'简答/论述',
+ answer:`<strong>（1）创新</strong>——引领发展的第一动力，解决发展动力问题。<strong>（2）协调</strong>——持续健康发展的内在要求，解决发展不平衡问题。<strong>（3）绿色</strong>——永续发展的必要条件，解决人与自然和谐共生问题。<strong>（4）开放</strong>——国家繁荣发展的必由之路，解决发展内外联动问题。<strong>（5）共享</strong>——中国特色社会主义的本质要求，解决社会公平正义问题。全民共享、全面共享、共建共享、渐进共享。`,
+ keyPoints:['创新·动力','协调·平衡','绿色·和谐','开放·联动','共享·公平']},
+{id:17,cat:'reform_econ',title:'高质量发展的科学内涵和重大意义',type:'简答/论述',
+ answer:`<strong>科学内涵：</strong>能够很好满足人民日益增长的美好生活需要的发展，是体现新发展理念的发展。从供给看——产业体系完整，创新力强；从需求看——满足个性化多样化升级需求；从投入产出看——提高全要素生产率；从分配看——投资有回报、企业有利润、员工有收入、政府有税收；从宏观经济循环看——生产分配流通消费循环通畅。<strong>重大意义：</strong>为全面建设社会主义现代化国家提供物质基础；不断满足人民对美好生活需要；维护国家长治久安。`,
+ keyPoints:['满足美好生活需要','新发展理念','全要素生产率']},
+{id:18,cat:'reform_econ',title:'社会主义基本经济制度的新概括及其意义',type:'简答',
+ answer:`<strong>新概括：</strong>将公有制为主体、多种所有制经济共同发展，按劳分配为主体、多种分配方式并存，社会主义市场经济体制等共同作为社会主义基本经济制度。<strong>意义：</strong>充分体现了社会主义制度的优越性，是对马克思主义政治经济学的重要发展。`,
+ keyPoints:['公有制为主体','按劳分配为主体','社会主义市场经济体制']},
+{id:19,cat:'reform_econ',title:'教育、科技、人才在中国式现代化中的战略地位',type:'简答',
+ answer:`教育是国之大计、党之大计；科技是第一生产力；人才是第一资源。三者有机联系、相互促进。必须坚持<strong>教育优先发展、科技自立自强、人才引领驱动</strong>。`,
+ keyPoints:['教育优先发展','科技自立自强','人才引领驱动']},
+{id:20,cat:'democracy_law',title:'全过程人民民主的内涵和特点',type:'简答',
+ answer:`全过程人民民主是<strong>全链条、全方位、全覆盖</strong>的民主。实现了过程民主和成果民主、程序民主和实质民主、直接民主和间接民主、人民民主和国家意志相统一，是最广泛、最真实、最管用的社会主义民主。`,
+ keyPoints:['全链条全方位全覆盖','最广泛最真实最管用']},
+{id:21,cat:'democracy_law',title:'人民当家作主的制度体系的主要内容',type:'简答',
+ answer:`<strong>（1）根本政治制度：</strong>人民代表大会制度。<strong>（2）基本政治制度：</strong>中国共产党领导的多党合作和政治协商制度、民族区域自治制度、基层群众自治制度。<strong>（3）全面发展协商民主。</strong><strong>（4）积极发展基层民主。</strong>`,
+ keyPoints:['人民代表大会制度','三大基本政治制度','协商民主','基层民主']},
+{id:22,cat:'democracy_law',title:'中国特色社会主义法治道路的核心要义和基本原则是什么？',type:'简答',
+ answer:`<strong>核心要义：</strong>①党的领导是社会主义法治最根本的保证；②中国特色社会主义制度是根本制度基础；③中国特色社会主义法治理论是理论指导和学理支撑。<strong>基本原则：</strong>①坚持党的领导|②坚持以人民为中心|③坚持法律面前人人平等|④坚持依法治国和以德治国相结合|⑤坚持从中国实际出发。`,
+ keyPoints:['党的领导·法治保证','法律面前人人平等','依法治国以德治国结合']},
+{id:23,cat:'democracy_law',title:'法治中国建设的总体目标和工作布局是什么？',type:'简答',
+ answer:`<strong>总体目标：</strong>①到2025年，中国特色社会主义法治体系初步形成；②到2035年，法治国家、法治政府、法治社会基本建成。<strong>工作布局：</strong>①坚持依法治国、依法执政、依法行政共同推进；②坚持法治国家、法治政府、法治社会一体建设；③坚持统筹推进国内法治和涉外法治。`,
+ keyPoints:['2025初步形成','2035基本建成','共同推进一体建设']},
+{id:24,cat:'culture',title:'坚定文化自信的内涵和坚实基础是什么？',type:'简答',
+ answer:`<strong>内涵：</strong>坚信中国特色社会主义文化积淀着中华民族最深层的精神追求，代表着中华民族独特的精神标识。<strong>坚实基础：</strong>①中华优秀传统文化是深厚基础；②党带领人民在伟大斗争中孕育的革命文化和社会主义先进文化是坚强基石；③中国特色社会主义伟大实践是现实基础。`,
+ keyPoints:['中华优秀传统文化','革命文化','社会主义先进文化','伟大实践']},
+{id:25,cat:'culture',title:'坚持马克思主义在意识形态领域指导地位的根本制度的必要性',type:'简答',
+ answer:`<strong>（1）</strong>马克思主义是立党立国、兴党兴国的根本指导思想，是一项根本制度。<strong>（2）</strong>是历史的结论。<strong>（3）</strong>是坚持和巩固我国社会主义制度、保证文化建设正确方向的必然要求。<strong>（4）</strong>必须牢牢掌握党对意识形态工作领导权，全面落实意识形态工作责任制。`,
+ keyPoints:['根本指导思想','历史的结论','意识形态领导权']},
+{id:26,cat:'culture',title:'中华文明有哪些突出特性？如何推动创造性转化和创新性发展？',type:'简答/论述',
+ answer:`<strong>五大突出特性：</strong>连续性、创新性、统一性、包容性、和平性。<strong>创造性转化：</strong>按照时代特点和要求，对仍有借鉴价值的内涵和陈旧表现形式加以改造。<strong>创新性发展：</strong>按照时代新进步新进展，对内涵加以补充、拓展、完善。使中华民族最基本的文化基因同当代中国相适应、同现代社会相协调、同现实文化相融通。`,
+ keyPoints:['连续性创新性统一性包容性和平性','创造性转化','创新性发展']},
+{id:27,cat:'livelihood',title:'如何坚持在发展中增进民生福祉？',type:'简答',
+ answer:`<strong>（1）</strong>正确把握民生和发展的关系——重要前提。<strong>（2）</strong>坚守底线、突出重点、完善制度、引导预期——工作思路。<strong>（3）</strong>解决人民群众最关心最直接最现实的利益问题——重中之重。<strong>（4）</strong>坚持尽力而为、量力而行——重要方针。<strong>（5）</strong>坚持人人尽责、人人享有——重要原则。`,
+ keyPoints:['民生发展关系','底线重点制度预期','尽力而为量力而行']},
+{id:28,cat:'ecology',title:'绿水青山就是金山银山的科学内涵',type:'简答/论述',
+ answer:`<strong>（1）</strong>生态环境问题归根到底是经济发展方式和生活方式问题。绿水青山就是金山银山是推进现代化建设的重大原则。<strong>（2）</strong>绿水青山既是自然财富、生态财富，又是社会财富、经济财富。<strong>（3）</strong>处理好绿水青山和金山银山的关系，关键在人，关键在思路。`,
+ keyPoints:['经济发展与生态保护','自然财富与经济社会财富','关键在人·在思路']},
+{id:29,cat:'ecology',title:'如何加快形成绿色生产方式和生活方式？',type:'简答',
+ answer:`<strong>（1）</strong>加快推动产业结构、能源结构、交通运输结构等调整优化。<strong>（2）</strong>推进各类资源节约集约利用。<strong>（3）</strong>积极稳妥推进碳达峰碳中和。<strong>（4）</strong>健全绿色发展的保障体系。<strong>（5）</strong>坚持把建设美丽中国转化为全体人民自觉行动。`,
+ keyPoints:['产业结构调整','节约集约','碳达峰碳中和','美丽中国']},
+{id:30,cat:'security',title:'总体国家安全观的内容和关键是什么？',type:'简答',
+ answer:`<strong>内容（五大要素）：</strong>①以人民安全为宗旨|②以政治安全为根本|③以经济安全为基础|④以军事、科技、文化、社会安全为保障|⑤以促进国际安全为依托。<strong>关键——"总体"：</strong>强调"大安全"理念；强调系统思维和方法；强调打总体战。`,
+ keyPoints:['人民安全宗旨','政治安全根本','大安全理念','总体战']},
+{id:31,cat:'security',title:'如何理解发展和安全的关系？怎样统筹发展和安全？',type:'简答/论述',
+ answer:`<strong>关系：</strong>①发展具有基础性、根本性，是解决安全问题的总钥匙，发展就是最大的安全。②安全是发展的条件和保障。③发展和安全是一体之两翼、驱动之双轮，必须同步推进。<strong>方法：</strong>以新安全格局保障新发展格局；牢牢守住安全发展底线；实现高质量发展和高水平安全的良性互动。`,
+ keyPoints:['发展是总钥匙','一体之两翼','新安全格局保障新发展格局']},
+{id:32,cat:'security',title:'党在新时代的强军目标的科学内涵',type:'简答',
+ answer:`<strong>（1）听党指挥</strong>是灵魂，决定军队建设的政治方向。<strong>（2）能打胜仗</strong>是核心，反映军队的根本职能和根本指向。<strong>（3）作风优良</strong>是保证，关系军队的性质、宗旨、本色。三者相互联系、密不可分。`,
+ keyPoints:['听党指挥·灵魂','能打胜仗·核心','作风优良·保证']},
+{id:33,cat:'unity_diplomacy',title:'新时代党解决台湾问题的总体方略',type:'简答',
+ answer:`<strong>十项坚持：</strong>①坚持党中央集中统一领导|②坚持在民族复兴进程中推进统一|③坚持在祖国大陆发展进步基础上解决|④坚持"和平统一、一国两制"|⑤坚持一个中国原则和"九二共识"|⑥坚持两岸关系和平发展、融合发展|⑦坚持团结台湾同胞、争取台湾民心|⑧坚持粉碎"台独"分裂图谋|⑨坚持反对外部势力干涉|⑩坚持决不承诺放弃使用武力。`,
+ keyPoints:['和平统一一国两制','一个中国原则','九二共识','不承诺放弃武力']},
+{id:34,cat:'unity_diplomacy',title:'如何推动构建新型国际关系？',type:'简答',
+ answer:`<strong>（1）</strong>秉持相互尊重、公平正义、合作共赢原则，走对话而不对抗、结伴而不结盟的国与国交往新路。<strong>（2）</strong>推进大国协调合作。<strong>（3）</strong>坚持亲诚惠容和与邻为善、以邻为伴周边外交方针。<strong>（4）</strong>秉持真实亲诚理念和正确义利观，加强同发展中国家团结合作。`,
+ keyPoints:['相互尊重公平正义合作共赢','亲诚惠容','真实亲诚']},
+{id:35,cat:'unity_diplomacy',title:'构建人类命运共同体的内涵',type:'简答/论述',
+ answer:`建设持久和平、普遍安全、共同繁荣、开放包容、清洁美丽的世界：<strong>（1）持久和平</strong>——坚持对话协商。<strong>（2）普遍安全</strong>——树立共同、综合、合作、可持续的安全观。<strong>（3）共同繁荣</strong>——坚持你好我好大家好的理念。<strong>（4）开放包容</strong>——不同文明之间要对话不要对立。<strong>（5）清洁美丽</strong>——倡导绿色、低碳、循环、可持续的生产生活方式。`,
+ keyPoints:['持久和平','普遍安全','共同繁荣','开放包容','清洁美丽']},
+{id:36,cat:'party_build',title:'全面从严治党的科学内涵',type:'简答',
+ answer:`核心是加强党的领导，基础在全面，关键在严，要害在治。<strong>"基础在全面"</strong>——落实到每个党组织每名党员。<strong>"关键在严"</strong>——真管真严、敢管敢严、长管长严。<strong>"要害在治"</strong>——真正解决问题，各级党委担负主体责任，纪委担负监督责任。`,
+ keyPoints:['核心·加强领导','基础·全面','关键·严','要害·治']},
+{id:37,cat:'party_build',title:'把党的政治建设摆在首位的必要性和举措',type:'简答',
+ answer:`<strong>必要性：</strong>党的政治建设是党的根本性建设。旗帜鲜明讲政治是马克思主义政党的根本要求。<strong>举措：</strong>①保证全党服从中央，维护党中央权威和集中统一领导——首要任务。②把准政治方向、站稳政治立场、营造良好政治生态、提高政治能力。`,
+ keyPoints:['根本性建设','两个维护·首要任务','政治方向立场生态能力']},
+{id:38,cat:'overview',title:'（补充）中国特色社会主义进入新时代的历史性成就',type:'参考',
+ answer:`在党的领导下，我国在经济建设、政治建设、文化建设、社会建设、生态文明建设等各方面取得了历史性成就，发生了历史性变革，为实现中华民族伟大复兴提供了更为完善的制度保证、更为坚实的物质基础、更为主动的精神力量。`,
+ keyPoints:['历史性成就','历史性变革','制度保证·物质基础·精神力量']},
+{id:39,cat:'overview',title:'（补充）"两个确立"的决定性意义',type:'参考',
+ answer:`<strong>确立习近平同志党中央的核心、全党的核心地位</strong>，<strong>确立习近平新时代中国特色社会主义思想的指导地位</strong>，反映了全党全军全国各族人民共同心愿，对新时代党和国家事业发展、对推进中华民族伟大复兴历史进程具有决定性意义。`,
+ keyPoints:['两个确立','核心地位','指导地位']},
+];
+
+// ====== QUIZ BANK with Explanations ======
+const quizBank={single:[
+{q:'习近平新时代中国特色社会主义思想创立的时代背景中，"世界百年未有之大变局"的态势是什么？',opts:['加速演进','缓慢变化','停滞不前','已经结束'],ans:0,exp:'考点1：世界百年未有之大变局加速演进是习近平思想创立的首要时代背景。'},
+{q:'"六个必须坚持"中，体现历史唯物主义群众史观的是哪一个？',opts:['坚持自信自立','坚持守正创新','坚持人民至上','坚持系统观念'],ans:2,exp:'考点3：坚持人民至上是根本价值立场，体现了历史唯物主义群众史观。'},
+{q:'"六个必须坚持"中，体现辩证唯物主义普遍联系原理的是哪一个？',opts:['坚持问题导向','坚持系统观念','坚持胸怀天下','坚持自信自立'],ans:1,exp:'考点3：坚持系统观念是基本思想和工作方法，体现了辩证唯物主义普遍联系的原理。'},
+{q:'习近平新时代中国特色社会主义思想是马克思主义在当代中国发展的什么？',opts:['早期理论成果','最新理论成果','唯一理论成果','过渡理论成果'],ans:1,exp:'考点4：是马克思主义在当代中国发展的最新理论成果，开辟了马克思主义中国化时代化新境界。'},
+{q:'中国特色社会主义是科学社会主义理论逻辑和什么逻辑的辩证统一？',opts:['自然发展历史逻辑','中国社会发展历史逻辑','世界经济发展逻辑','人类文明演进逻辑'],ans:1,exp:'考点5：中国特色社会主义是科学社会主义理论逻辑和中国社会发展历史逻辑的辩证统一。'},
+{q:'新时代"五个时代"中，关于发展目标的是哪一个？',opts:['承前启后继往开来的时代','决胜全面建成小康社会、进而全面建设社会主义现代化强国的时代','不断为人类作出更大贡献的时代','勠力同心实现中国梦的时代'],ans:1,exp:'考点6：第二个时代是决胜全面建成小康社会、进而全面建设社会主义现代化强国的时代，指向发展目标。'},
+{q:'新时代"三个意味着"中，中华民族迎来了怎样的伟大飞跃？',opts:['从贫到富','从弱到强','从站起来富起来到强起来','从封闭到开放'],ans:2,exp:'考点6：第一个意味着——中华民族迎来了从站起来、富起来到强起来的伟大飞跃。'},
+{q:'中华民族伟大复兴中国梦的核心内涵不包括哪一项？',opts:['国家富强','民族振兴','人民幸福','军事霸权'],ans:3,exp:'考点7：中国梦内涵是国家富强、民族振兴、人民幸福，不含军事霸权。'},
+{q:'中国式现代化是人口规模巨大的现代化，我国多少人口整体迈进现代化？',opts:['超过10亿','超过14亿','超过5亿','超过20亿'],ans:1,exp:'考点8：中国式现代化是人口规模巨大的现代化，超过14亿人口整体迈进现代化。'},
+{q:'中国式现代化的本质要求中，排在首位的是什么？',opts:['实现高质量发展','坚持中国共产党领导','发展全过程人民民主','推动构建人类命运共同体'],ans:1,exp:'考点8：本质要求共9个方面，坚持中国共产党领导排在首位。'},
+{q:'中国式现代化区别于西方式现代化的关键特征是什么？',opts:['人口规模巨大','全体人民共同富裕','物质文明和精神文明相协调','走和平发展道路'],ans:1,exp:'考点8：全体人民共同富裕的现代化是中国式现代化区别于西方式现代化的关键特征。'},
+{q:'"绿水青山就是金山银山"阐明了什么之间的关系？',opts:['城乡发展','经济发展与生态环境保护','工业与农业','国内与国际'],ans:1,exp:'考点28：阐明了经济发展与生态环境保护之间的关系，是推进现代化建设的重大原则。'},
+{q:'全面深化改革总目标中，规定了改革根本方向的是什么？',opts:['推进国家治理现代化','完善和发展中国特色社会主义制度','解放和发展生产力','实现共同富裕'],ans:1,exp:'考点15：完善和发展中国特色社会主义制度规定了改革的根本方向。'},
+{q:'新发展理念中，解决发展动力问题的是哪一个？',opts:['协调','绿色','创新','开放'],ans:2,exp:'考点16：创新是引领发展的第一动力，创新发展注重的是解决发展动力问题。'},
+{q:'新发展理念中，注重解决社会公平正义问题的是哪一个？',opts:['创新','协调','开放','共享'],ans:3,exp:'考点16：共享是中国特色社会主义的本质要求，共享发展注重的是解决社会公平正义问题。'},
+{q:'高质量发展是体现什么理念的发展？',opts:['传统发展理念','新发展理念','可持续发展理念','绿色发展理念'],ans:1,exp:'考点17：高质量发展是体现新发展理念的发展。'},
+{q:'下列哪项不属于社会主义基本经济制度？',opts:['公有制为主体多种所有制经济共同发展','按劳分配为主体多种分配方式并存','社会主义市场经济体制','计划经济为主市场调节为辅'],ans:3,exp:'考点18：社会主义基本经济制度是前三个方面的新概括，不含计划经济。'},
+{q:'全过程人民民主的特点是什么？',opts:['仅选举民主','全链条全方位全覆盖','仅协商民主','仅基层民主'],ans:1,exp:'考点20：全过程人民民主是全链条、全方位、全覆盖的民主。'},
+{q:'我国的根本政治制度是什么？',opts:['多党合作制度','人民代表大会制度','民族区域自治制度','基层群众自治制度'],ans:1,exp:'考点21：人民代表大会制度是我国的根本政治制度。'},
+{q:'中国特色社会主义法治道路最根本的保证是什么？',opts:['人民当家作主','依法治国','党的领导','以德治国'],ans:2,exp:'考点22：党的领导是中国特色社会主义最本质的特征，是社会主义法治最根本的保证。'},
+{q:'中华文明的突出特性不包括哪一项？',opts:['连续性','创新性','排他性','包容性'],ans:2,exp:'考点26：中华文明具有连续性、创新性、统一性、包容性、和平性，不含排他性。'},
+{q:'总体国家安全观的宗旨是什么？',opts:['政治安全','经济安全','人民安全','军事安全'],ans:2,exp:'考点30：总体国家安全观以人民安全为宗旨。'},
+{q:'总体国家安全观的根本是什么？',opts:['人民安全','政治安全','经济安全','文化安全'],ans:1,exp:'考点30：总体国家安全观以政治安全为根本。'},
+{q:'党在新时代强军目标中，什么是灵魂？',opts:['能打胜仗','作风优良','听党指挥','科技强军'],ans:2,exp:'考点32：听党指挥是灵魂，决定军队建设的政治方向。'},
+{q:'党在新时代强军目标中，什么是核心？',opts:['听党指挥','能打胜仗','作风优良','政治建军'],ans:1,exp:'考点32：能打胜仗是核心，反映军队的根本职能和根本指向。'},
+{q:'解决台湾问题的基本方针是什么？',opts:['武力统一','和平统一、一国两制','台湾独立','维持现状'],ans:1,exp:'考点33：坚持"和平统一、一国两制"基本方针。'},
+{q:'"十个明确""十四个坚持""十三个方面成就"概括了什么？',opts:['习近平新时代中国特色社会主义思想的主要内容','马克思主义基本原理','科学发展观','邓小平理论'],ans:0,exp:'考点2：三者概括了习近平新时代中国特色社会主义思想的主要内容。'},
+{q:'全面从严治党的核心是什么？',opts:['全面','从严','加强党的领导','反腐败'],ans:2,exp:'考点36：全面从严治党，核心是加强党的领导。'},
+{q:'全面从严治党的关键是什么？',opts:['全面','加强领导','严','治'],ans:2,exp:'考点36：全面从严治党，关键在严。'},
+{q:'党的政治建设是什么建设？',opts:['一般性建设','根本性建设','次要建设','阶段性建设'],ans:1,exp:'考点37：党的政治建设是党的根本性建设。'},
+{q:'推动构建新型国际关系要秉持什么原则？',opts:['霸权主义','相互尊重公平正义合作共赢','零和博弈','冷战思维'],ans:1,exp:'考点34：秉持相互尊重、公平正义、合作共赢原则。'},
+{q:'构建人类命运共同体在安全方面要坚持什么？',opts:['单边安全','共同综合合作可持续的安全观','军事同盟','核威慑'],ans:1,exp:'考点35：树立共同、综合、合作、可持续的安全观。'},
+{q:'"两个确立"是指确立习近平同志核心地位和什么？',opts:['确立改革开放','确立习近平新时代中国特色社会主义思想的指导地位','确立市场经济','确立文化自信'],ans:1,exp:'考点39：两个确立是指确立习近平同志核心地位和确立习近平新时代中国特色社会主义思想的指导地位。'},
+{q:'中国式现代化创造了什么？',opts:['西方文明新形态','人类文明新形态','工业文明新形态','农业文明新形态'],ans:1,exp:'考点8：中国式现代化创造了人类文明新形态。'},
+{q:'高质量发展是不断满足人民对什么需要的重要保证？',opts:['基本生活','美好生活','物质生活','精神生活'],ans:1,exp:'考点17：高质量发展是不断满足人民对美好生活需要的重要保证。'},
+{q:'维护党中央权威最关键的是什么？',opts:['贯彻党的路线方针','坚持民主集中制','坚决维护习近平同志核心地位','加强党的建设'],ans:2,exp:'考点10：最关键的是坚决维护习近平同志党中央的核心、全党的核心地位。'},
+{q:'在发展中保障和改善民生的重要方针是什么？',opts:['尽力而为量力而行','大包大揽','只讲效率','平均分配'],ans:0,exp:'考点27：坚持尽力而为、量力而行是保障和改善民生的重要方针。'},
+{q:'法治中国建设到2035年的目标是什么？',opts:['法治体系初步形成','法治国家法治政府法治社会基本建成','全面实现法治','开始建设法治'],ans:1,exp:'考点23：到2035年，法治国家、法治政府、法治社会基本建成。'},
+{q:'"亲诚惠容"是哪方面的方针？',opts:['经济政策','周边外交','军事战略','文化政策'],ans:1,exp:'考点34：坚持亲诚惠容和与邻为善、以邻为伴周边外交方针。'},
+{q:'"三个解放"是指什么？',opts:['解放思想、解放和发展生产力、解放和增强社会活力','解放市场、解放资本、解放劳动','解放制度、解放思想、解放文化','解放教育、解放科技、解放人才'],ans:0,exp:'考点14：改革的动力是进一步解放思想、解放和发展社会生产力、解放和增强社会活力。'},
+{q:'"六个必须坚持"中体现变与不变、继承与发展的是？',opts:['坚持人民至上','坚持守正创新','坚持自信自立','坚持问题导向'],ans:1,exp:'考点3：坚持守正创新体现了变与不变、继承与发展的内在联系。'},
+{q:'共同富裕要形成什么样的分配结构？',opts:['金字塔型','中间大两头小的橄榄型','平均分配','两极分化'],ans:1,exp:'考点13：形成中间大、两头小的橄榄型分配结构。'},
+{q:'教育科技人才中，什么是第一资源？',opts:['教育','科技','人才','资本'],ans:2,exp:'考点19：人才是第一资源。'},
+{q:'教育科技人才中，什么是第一生产力？',opts:['教育','科技','人才','制度'],ans:1,exp:'考点19：科技是第一生产力。'},
+{q:'全面从严治党的基础是什么？',opts:['加强领导','严','治','全面'],ans:3,exp:'考点36：全面从严治党，基础在全面。'},
+{q:'全面从严治党的要害是什么？',opts:['全面','加强领导','严','治'],ans:3,exp:'考点36：全面从严治党，要害在治。'},
+{q:'中国共产党领导是中国特色社会主义制度的什么？',opts:['一般特征','最大优势','次要条件','过渡安排'],ans:1,exp:'考点9：中国共产党领导是中国特色社会主义制度的最大优势。'},
+{q:'坚定文化自信的深厚基础是什么？',opts:['革命文化','社会主义先进文化','中华优秀传统文化','外来文化'],ans:2,exp:'考点24：中华优秀传统文化是我们坚定文化自信的深厚基础。'},
+{q:'推进什么行动是绿色发展的内容之一？',opts:['工业化','碳达峰碳中和','城镇化','商业化'],ans:1,exp:'考点29：积极稳妥推进碳达峰碳中和。'},
+{q:'总体国家安全观的关键是什么？',opts:['"安全"','"总体"','"国家"','"观"'],ans:1,exp:'考点30：总体国家安全观的关键是"总体"。'},
+{q:'统筹发展和安全中，发展就是最大的什么？',opts:['负担','安全','风险','成本'],ans:1,exp:'考点31：发展就是最大的安全。'},
+{q:'推动中华优秀传统文化创造性转化要按照什么改造？',opts:['古代标准','西方标准','时代特点和要求','个人喜好'],ans:2,exp:'考点26：按照时代特点和要求进行改造，赋予新的时代内涵和现代表达形式。'},
+{q:'马克思主义在意识形态领域的制度地位是？',opts:['一项基本制度','一项根本制度','一项临时制度','一项补充制度'],ans:1,exp:'考点25：坚持马克思主义在意识形态领域指导地位的制度是一项根本制度。'},
+{q:'社会主义协商民主是什么的重要形式？',opts:['精英民主','全过程人民民主','代议制民主','直接民主'],ans:1,exp:'考点21：协商民主是实践全过程人民民主的重要形式。'},
+{q:'构建人类命运共同体在生态方面要建设什么世界？',opts:['工业文明','清洁美丽','技术发达','军事强大'],ans:1,exp:'考点35：建设清洁美丽的世界。'},
+{q:'党的政治建设的首要任务是什么？',opts:['发展经济','保证全党服从中央维护党中央权威','改善民生','对外开放'],ans:1,exp:'考点37：保证全党服从中央，维护党中央权威和集中统一领导是首要任务。'},
+{q:'中国式现代化是人与自然怎样的现代化？',opts:['征服自然','和谐共生','独立发展','改造自然'],ans:1,exp:'考点8：中国式现代化是人与自然和谐共生的现代化。'},
+{q:'坚持人民至上体现了什么原理？',opts:['客观规律和主观能动性的结合','历史唯物主义群众史观','矛盾的普遍性和客观性','辩证唯物主义普遍联系'],ans:1,exp:'考点3：坚持人民至上是根本价值立场，体现历史唯物主义群众史观。'},
+{q:'坚持自信自立体现了什么？',opts:['变与不变的辩证关系','客观规律性和主观能动性的有机结合','历史唯物主义群众史观','矛盾的普遍性'],ans:1,exp:'考点3：坚持自信自立体现了客观规律性和主观能动性的有机结合。'},
+{q:'坚持问题导向体现了什么？',opts:['辩证唯物主义普遍联系','矛盾的普遍性和客观性','历史唯物主义群众史观','马克思主义人类解放思想'],ans:1,exp:'考点3：坚持问题导向体现了矛盾的普遍性和客观性。'},
+{q:'坚持胸怀天下体现了什么？',opts:['矛盾的普遍性','马克思主义追求人类进步和解放的崇高理想','客观规律性','变与不变的联系'],ans:1,exp:'考点3：坚持胸怀天下体现了马克思主义追求人类进步和解放的崇高理想。'},
+{q:'中国特色社会主义写出了科学社会主义的什么？',opts:['"初版本"','"新版本"','"旧版本"','"最终版本"'],ans:1,exp:'考点5：中国特色社会主义写出了科学社会主义的"新版本"。'},
+{q:'构建人类命运共同体在文明交流上要什么？',opts:['文明冲突','文明优越','文明对话不要对立','文明隔绝'],ans:2,exp:'考点35：不同文明之间要对话不要对立，要包容不要冲突。'},
+{q:'"两个结合"第二个结合是同什么相结合？',opts:['西方文化','中华优秀传统文化','市场经济','现代科技'],ans:1,exp:'考点4：把马克思主义基本原理同中华优秀传统文化相结合。'},
+{q:'中国式现代化本质要求共包含几个方面？',opts:['5个','7个','9个','11个'],ans:2,exp:'考点8：本质要求包含9个方面。'},
+{q:'"不忘初心牢记使命"是党的领导制度体系中的什么制度？',opts:['全面从严治党制度','不忘初心牢记使命的制度','健全党的全面领导制度','为人民执政靠人民执政制度'],ans:1,exp:'考点11：建立不忘初心、牢记使命的制度是六大制度之首。'},
+{q:'维护党中央权威同什么是一致的？',opts:['个人专断','民主集中制','自由主义','分散主义'],ans:1,exp:'考点10：维护党中央权威和集中统一领导同坚持民主集中制是完全一致的。'},
+{q:'党的自我革命开辟新境界是什么的背景之一？',opts:['世界变局','民族复兴关键期','中国式现代化','党的自我革命'],ans:3,exp:'考点1：中国共产党自我革命开辟新的境界是五大时代背景之一。'},
+{q:'"六个必须坚持"在党的二十大被定义为什么？',opts:['科学体系主要内容','世界观和方法论','历史地位','时代课题'],ans:1,exp:'考点2：党的二十大提出的"六个必须坚持"是世界观和方法论。'},
+{q:'中国式现代化的重大意义是什么？',opts:['继承了西方现代化','创造了人类文明新形态','模仿了苏联模式','延续了传统道路'],ans:1,exp:'考点8：创造了人类文明新形态，这是中国式现代化的重大意义。'},
+{q:'新发展理念中解决发展不平衡问题的是？',opts:['创新','协调','绿色','开放'],ans:1,exp:'考点16：协调是持续健康发展的内在要求，注重的是解决发展不平衡问题。'},
+{q:'"一带一路"倡议体现的新发展理念主要是？',opts:['创新','协调','绿色','开放'],ans:3,exp:'考点16：开放发展注重的是解决发展内外联动问题，开放是国家繁荣发展的必由之路。'},
+{q:'如何正确处理绿水青山和金山银山的关系？',opts:['关键在政策','关键在人、在思路','关键在资金','关键在技术'],ans:1,exp:'考点28：处理好绿水青山和金山银山的关系，关键在人，关键在思路。'},
+{q:'中国特色社会主义进入新时代，意味着什么在21世纪的中国焕发出强大生机活力？',opts:['市场经济','科学社会主义','传统文化','资本主义'],ans:1,exp:'考点6：第二个意味着——科学社会主义在21世纪的中国焕发出强大生机活力。'},
+{q:'全面从严治党，真管真严、敢管敢严、长管长严体现的是什么？',opts:['基础在全面','关键在严','要害在治','核心在党'],ans:1,exp:'考点36：关键在严，就是坚持严字当头，真管真严、敢管敢严、长管长严。'},
+{q:'下面哪项属于我国的基本政治制度？',opts:['人民代表大会制度','社会主义市场经济体制','民族区域自治制度','人民民主专政'],ans:2,exp:'考点21：民族区域自治制度是我国的基本政治制度之一。'},
+{q:'中国式现代化是走什么道路的现代化？',opts:['殖民扩张','和平发展','军备竞赛','闭关锁国'],ans:1,exp:'考点8：中国式现代化是走和平发展道路的现代化。'},
+{q:'改革发展稳定三者关系中，什么是前提？',opts:['改革','发展','稳定','三者同等重要'],ans:2,exp:'考点31：没有安全和稳定，一切都无从谈起。稳定是改革发展的前提。'},
+{q:'协商民主是中国社会主义民主政治中什么样的民主形式？',opts:['普通的','借鉴的','独特的独有的独到的','形式的'],ans:2,exp:'考点21：协商民主是中国社会主义民主政治中独特的、独有的、独到的民主形式。'},
+{q:'中国式现代化中，"物质文明和精神文明相协调"强调的是？',opts:['只重物质','只重精神','两手抓，协调发展','物质决定一切'],ans:2,exp:'考点8：物质文明和精神文明相协调意味着两者协调发展、相互促进。'},
+{q:'增强"四个意识"不包括？',opts:['政治意识','大局意识','核心意识','利益意识'],ans:3,exp:'四个意识是政治意识、大局意识、核心意识、看齐意识。'},
+{q:'坚定"四个自信"不包括？',opts:['道路自信','理论自信','制度自信','军事自信'],ans:3,exp:'四个自信是道路自信、理论自信、制度自信、文化自信。'},
+],judge:[
+{q:'习近平新时代中国特色社会主义思想创立于世界百年未有之大变局加速演进的时代背景下。',ans:true,exp:'考点1：世界百年未有之大变局加速演进是首要背景，此为正确。'},
+{q:'"六个必须坚持"是习近平新时代中国特色社会主义思想的世界观和方法论。',ans:true,exp:'考点2：党的二十大明确"六个必须坚持"是世界观和方法论。'},
+{q:'坚持自信自立体现了矛盾的普遍性和客观性。',ans:false,exp:'考点3：坚持自信自立体现的是客观规律性和主观能动性的有机结合；坚持问题导向才体现矛盾的普遍性和客观性。'},
+{q:'习近平新时代中国特色社会主义思想是马克思主义在当代中国发展的最新理论成果。',ans:true,exp:'考点4：是马克思主义在当代中国发展的最新理论成果。'},
+{q:'中国特色社会主义不是科学社会主义。',ans:false,exp:'考点5：中国特色社会主义坚持了科学社会主义基本原则，是科学社会主义的"新版本"。'},
+{q:'中国特色社会主义新时代是全体中华儿女勠力同心实现中国梦的时代。',ans:true,exp:'考点6：五个时代之一，此表述正确。'},
+{q:'中国梦的内涵包括国家富强、民族振兴、人民幸福。',ans:true,exp:'考点7：中国梦三大核心内涵，表述正确。'},
+{q:'中国式现代化是人口规模较小的现代化。',ans:false,exp:'考点8：中国式现代化是人口规模巨大的现代化，超过14亿人口。'},
+{q:'中国共产党领导是中国特色社会主义制度的最大优势。',ans:true,exp:'考点9：党领导是最大优势，表述正确。'},
+{q:'维护党中央权威最关键的是坚决维护习近平同志的核心地位。',ans:true,exp:'考点10：最关键的就是坚决维护习近平同志党中央的核心、全党的核心地位。'},
+{q:'人民代表大会制度是我国的基本政治制度。',ans:false,exp:'考点21：人民代表大会制度是根本政治制度，不是基本政治制度。'},
+{q:'全面深化改革总目标是完善和发展中国特色社会主义制度、推进国家治理现代化。',ans:true,exp:'考点15：这是全面深化改革总目标的完整表述。'},
+{q:'创新是引领发展的第一动力。',ans:true,exp:'考点16：创新是引领发展的第一动力，表述正确。'},
+{q:'共享发展注重的是解决发展不平衡问题。',ans:false,exp:'考点16：共享发展注重的是解决社会公平正义问题；协调发展才注重解决发展不平衡问题。'},
+{q:'高质量发展是满足人民美好生活需要的发展。',ans:true,exp:'考点17：高质量发展是能够很好满足人民日益增长的美好生活需要的发展。'},
+{q:'绿水青山就是金山银山阐明了经济发展与生态保护的关系。',ans:true,exp:'考点28：阐明了经济发展与生态环境保护之间的关系。'},
+{q:'总体国家安全观以政治安全为宗旨。',ans:false,exp:'考点30：总体国家安全观以人民安全为宗旨，以政治安全为根本。'},
+{q:'听党指挥是强军目标的核心。',ans:false,exp:'考点32：听党指挥是灵魂，能打胜仗才是核心。'},
+{q:'全面从严治党的核心是加强党的领导。',ans:true,exp:'考点36：全面从严治党，核心是加强党的领导。'},
+{q:'党的政治建设是党的根本性建设。',ans:true,exp:'考点37：党的政治建设是党的根本性建设，表述正确。'},
+{q:'中华文明具有连续性、创新性、统一性、包容性、和平性。',ans:true,exp:'考点26：五大突出特性，表述全部正确。'},
+{q:'构建人类命运共同体要建设持久和平、普遍安全、共同繁荣、开放包容、清洁美丽的世界。',ans:true,exp:'考点35：五大目标，表述正确。'},
+{q:'依法治国和以德治国相结合是法治道路的基本原则。',ans:true,exp:'考点22：坚持依法治国和以德治国相结合是五项基本原则之一。'},
+{q:'协商民主是中国独特的独有的独到的民主形式。',ans:true,exp:'考点21：三个"独"，表述正确。'},
+{q:'共同富裕就是要搞平均主义。',ans:false,exp:'考点13：共同富裕不是平均主义，是鼓励勤劳创新致富、形成橄榄型分配结构。'},
+{q:'教育是国之大计党之大计。',ans:true,exp:'考点19：教育是国之大计、党之大计。'},
+{q:'科技是第一生产力，人才是第一资源。',ans:true,exp:'考点19：科技是第一生产力、人才是第一资源、创新是第一动力。'},
+{q:'基层民主是全过程人民民主的重要体现。',ans:true,exp:'考点21：基层民主是全过程人民民主的重要体现。'},
+{q:'新型国际关系要坚持对话而不对抗、结伴而不结盟。',ans:true,exp:'考点34：走对话而不对抗、结伴而不结盟的国与国交往新路。'},
+{q:'全面从严治党基础在全面，关键在严，要害在治。',ans:true,exp:'考点36：三个定位表述完全正确。'},
+{q:'坚持问题导向体现了变与不变、继承与发展的联系。',ans:false,exp:'考点3：坚持守正创新才体现变与不变、继承与发展的联系；坚持问题导向体现矛盾的普遍性和客观性。'},
+{q:'中国式现代化是对西方式现代化的重大超越。',ans:true,exp:'考点8：中国式现代化是对西方式现代化理论和实践的重大超越。'},
+{q:'中国式现代化为发展中国家提供了全新选择。',ans:true,exp:'考点8：为广大发展中国家提供了全新选择。'},
+{q:'发展和安全是一体之两翼、驱动之双轮。',ans:true,exp:'考点31：习近平强调发展和安全是一体之两翼、驱动之双轮。'},
+{q:'"两个确立"对推进民族复兴具有决定性意义。',ans:true,exp:'考点39：两个确立对推进中华民族伟大复兴历史进程具有决定性意义。'},
+{q:'中国式现代化是全体人民同步富裕的现代化。',ans:false,exp:'考点8：是全体人民共同富裕的现代化，不是同步富裕，共同富裕是一个渐进过程。'},
+{q:'"十个明确"是党的二十大提出的。',ans:false,exp:'考点2："十个明确"是党的十九届六中全会提出的，"六个必须坚持"才是党的二十大提出的。'},
+{q:'中华文明具有排他性的突出特性。',ans:false,exp:'考点26：中华文明具有包容性，不是排他性。'},
+{q:'坚持系统观念体现了矛盾的普遍性和客观性。',ans:false,exp:'考点3：坚持系统观念体现的是辩证唯物主义普遍联系的原理；坚持问题导向才体现矛盾的普遍性和客观性。'},
+{q:'党的领导制度是中国特色社会主义制度体系的核心。',ans:true,exp:'考点11：党的领导制度是中国特色社会主义制度体系的核心。'},
+{q:'人民立场是中国共产党的根本政治立场。',ans:true,exp:'考点12：人民立场是中国共产党的根本政治立场。'},
+{q:'全面深化改革的根本方向是推进国家治理现代化。',ans:false,exp:'考点15：完善和发展中国特色社会主义制度是根本方向，推进国家治理现代化是鲜明指向。'},
+{q:'绿色是引领发展的第一动力。',ans:false,exp:'考点16：创新才是引领发展的第一动力，绿色是永续发展的必要条件。'},
+{q:'开放发展注重的是解决发展不平衡问题。',ans:false,exp:'考点16：开放发展注重解决发展内外联动问题；协调发展才注重解决发展不平衡问题。'},
+{q:'中国式现代化是走和平发展道路的现代化。',ans:true,exp:'考点8：五大中国特色之一，表述正确。'},
+{q:'全面从严治党的要害是全面。',ans:false,exp:'考点36：要害在治，基础在全面。'},
+{q:'把党的政治建设摆在首位是马克思主义党建理论的重大创新。',ans:true,exp:'考点37：这是新时代我们党对马克思主义党建理论的重大创新。'},
+{q:'"亲诚惠容"是对发展中国家的外交理念。',ans:false,exp:'考点34：亲诚惠容是周边外交方针；真实亲诚才是对发展中国家的理念。'},
+{q:'绿水青山既是自然财富又是社会财富经济财富。',ans:true,exp:'考点28：绿水青山既是自然财富、生态财富，又是社会财富、经济财富。'},
+{q:'推进碳达峰碳中和是绿色发展的重要内容。',ans:true,exp:'考点29：积极稳妥推进碳达峰碳中和是加快形成绿色生产方式和生活方式的内容之一。'},
+{q:'强军目标中作风优良是核心。',ans:false,exp:'考点32：能打胜仗是核心，作风优良是保证。'},
+{q:'人民代表大会制度是我国的根本政治制度。',ans:true,exp:'考点21：这是我国宪法规定的根本政治制度。'},
+{q:'中国式现代化是物质文明和精神文明相协调的现代化。',ans:true,exp:'考点8：五大中国特色之一，表述正确。'},
+{q:'"两个结合"的第二个结合是同中华优秀传统文化相结合。',ans:true,exp:'考点4：把马克思主义基本原理同中国具体实际相结合、同中华优秀传统文化相结合。'},
+{q:'中国式现代化的五大特征中包含"人与自然和谐共生"。',ans:true,exp:'考点8：五大特征之一，表述正确。'},
+]};
+
+// ====== STATE ======
+const SK='xi_exam_review_data';
+function loadState(){try{return JSON.parse(localStorage.getItem(SK))||{};}catch(e){return{}}}
+function saveState(s){localStorage.setItem(SK,JSON.stringify(s));}
+function getState(){let s=loadState();s.mastered=s.mastered||{};s.flashcarded=s.flashcarded||{};s.wrongBook=s.wrongBook||{};s.quizCount=s.quizCount||0;s.flashcardIndex=s.flashcardIndex||0;s.flashcardCat=s.flashcardCat||'all';s.flashcardFiltered=s.flashcardFiltered||[];return s}
+
+// ====== TOAST QUEUE ======
+let toastQueue=[],toastTimer=null;
+function toast(msg){toastQueue.push(msg);if(!toastTimer)processToast();}
+function processToast(){if(toastQueue.length===0){toastTimer=null;return}const msg=toastQueue.shift();const t=document.createElement('div');t.className='toast';t.textContent=msg;document.getElementById('toastContainer').appendChild(t);toastTimer=setTimeout(()=>{t.remove();processToast();},1800);}
+
+// ====== STATS ======
+function updateStats(){const s=getState();document.getElementById('totalCount').textContent=questions.length;document.getElementById('masteredCount').textContent=Object.keys(s.mastered).length;document.getElementById('flashcardCount').textContent=Object.keys(s.flashcarded).length;document.getElementById('quizCount').textContent=s.quizCount;document.getElementById('wrongCount').textContent=Object.keys(s.wrongBook).length}
+
+// ====== NAVIGATION ======
+function switchPanel(id){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.panel===id));document.querySelectorAll('.dock-item').forEach(t=>t.classList.toggle('active',t.dataset.panel===id));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));if(id==='mindmap')renderMindMap();if(id==='wrongbook')renderWrongBook();if(id==='flashcard')initFlashcard();updateStats()}
+document.getElementById('navTabs').addEventListener('click',e=>{const t=e.target.closest('.nav-tab');if(t)switchPanel(t.dataset.panel)});
+document.getElementById('mobileDock').addEventListener('click',e=>{const t=e.target.closest('.dock-item');if(t)switchPanel(t.dataset.panel)});
+
+// ====== BACK TO TOP ======
+const btt=document.getElementById('backToTop');
+window.addEventListener('scroll',()=>{btt.classList.toggle('visible',window.scrollY>500)});
+
+// ====== BROWSE ======
+let activeCat='all',searchQuery='';
+function renderCatTags(){const container=document.getElementById('catTags');container.innerHTML=categories.map(c=>`<span class="cat-tag${activeCat===c.id?' active':''}" data-cat="${c.id}">${c.icon} ${c.name}</span>`).join('');container.querySelectorAll('.cat-tag').forEach(tag=>{tag.addEventListener('click',()=>{activeCat=tag.dataset.cat;searchQuery='';document.getElementById('searchInput').value='';renderCatTags();renderQList()})})}
+function filterQuestions(){searchQuery=document.getElementById('searchInput').value.trim().toLowerCase();activeCat='all';renderCatTags();renderQList()}
+document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')filterQuestions()});
+function getFilteredQuestions(){let qs=questions;if(activeCat!=='all')qs=qs.filter(q=>q.cat===activeCat);if(searchQuery)qs=qs.filter(q=>q.title.toLowerCase().includes(searchQuery)||q.answer.toLowerCase().includes(searchQuery)||(q.keyPoints||[]).some(k=>k.toLowerCase().includes(searchQuery)));return qs}
+function renderQList(){const s=getState(),qs=getFilteredQuestions();const container=document.getElementById('qList');if(qs.length===0){container.innerHTML='<div class="wrong-empty"><div class="we-icon">🔍</div><h3>未找到匹配考点</h3></div>';return}
+container.innerHTML=qs.map(q=>{const mastered=s.mastered[q.id],cat=categories.find(c=>c.id===q.cat);return`<div class="q-card${mastered?' expanded':''}" id="qcard-${q.id}"><button class="q-mark-btn${mastered?' marked':''}" data-action="mark" data-id="${q.id}" title="标记已掌握">${mastered?'⭐':'☆'}</button><button class="q-focus-btn" data-action="focus" data-id="${q.id}" title="专注模式阅读">🔍</button><div class="q-header" data-action="toggle"><div class="q-num${mastered?' done':''}">${mastered?'✓':q.id}</div><div><div class="q-title">${hl(q.title)}</div><div class="q-meta"><span class="q-badge">${q.type}</span><span class="q-badge gold">${cat?cat.icon+' '+cat.name:''}</span>${q.keyPoints?q.keyPoints.slice(0,3).map(k=>`<span class="q-badge">${hl(k)}</span>`).join(''):''}</div></div></div><div class="q-body"><div class="q-answer">${q.answer}</div></div></div>`}).join('');
+container.querySelectorAll('.q-header[data-action="toggle"]').forEach(h=>{h.addEventListener('click',e=>{if(e.target.closest('[data-action]'))return;h.closest('.q-card').classList.toggle('expanded')})});
+container.querySelectorAll('.q-mark-btn').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();const id=parseInt(btn.dataset.id),s=getState();if(s.mastered[id])delete s.mastered[id];else s.mastered[id]=Date.now();saveState(s);updateStats();renderQList();toast(s.mastered[id]?'⭐ 已标记为掌握':'已取消标记')})});
+container.querySelectorAll('.q-focus-btn').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();const q=questions.find(qq=>qq.id===parseInt(btn.dataset.id));if(q)openFocusMode(q,getFilteredQuestions())})})}
+function hl(text){if(!searchQuery)return text;const esc=searchQuery.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return text.replace(new RegExp(`(${esc})`,'gi'),'<em style="color:var(--red-light);font-style:normal;background:rgba(196,30,58,.2);padding:0 2px;border-radius:3px">$1</em>')}
+
+// ====== FOCUS MODE ======
+let focusQIdx=0,focusQList=[];
+function openFocusMode(q,sourceList){focusQList=sourceList||questions;focusQIdx=focusQList.findIndex(qq=>qq.id===q.id);if(focusQIdx<0)focusQIdx=0;renderFocusQ()}
+function renderFocusQ(){const q=focusQList[focusQIdx];if(!q)return;document.getElementById('focusTitle').textContent=`考点${q.id}：${q.title}`;document.getElementById('focusContent').innerHTML=q.answer;document.getElementById('focusOverlay').classList.add('active');document.body.style.overflow='hidden';document.getElementById('focusCounter').textContent=`${focusQIdx+1} / ${focusQList.length}`;document.getElementById('focusNavPrev').style.visibility=focusQIdx>0?'visible':'hidden';document.getElementById('focusNavNext').style.visibility=focusQIdx<focusQList.length-1?'visible':'hidden'}
+function focusNavigate(dir){focusQIdx+=dir;if(focusQIdx<0)focusQIdx=0;if(focusQIdx>=focusQList.length)focusQIdx=focusQList.length-1;renderFocusQ()}
+function closeFocusMode(){document.getElementById('focusOverlay').classList.remove('active');document.body.style.overflow=''}
+document.getElementById('focusOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('focusOverlay'))closeFocusMode()});
+document.addEventListener('keydown',e=>{if(document.getElementById('focusOverlay').classList.contains('active')){if(e.key==='ArrowLeft'){e.preventDefault();focusNavigate(-1)}if(e.key==='ArrowRight'){e.preventDefault();focusNavigate(1)}if(e.key==='Escape'){e.preventDefault();closeFocusMode()}}});
+
+// ====== FLASHCARD ======
+let fcIndex=0,fcList=[],fcFlipped=false;
+function initFlashcard(){const s=getState();updateFcList();fcIndex=0;fcFlipped=false;if(fcList.length>0){const si=fcList.findIndex(q=>!s.flashcarded[q.id]);if(si>=0)fcIndex=si}renderFcCatTags();renderFlashcard()}
+function updateFcList(){const s=getState();if(s.flashcardCat==='all')fcList=[...questions];else if(s.flashcardCat==='unmastered')fcList=questions.filter(q=>!s.flashcarded[q.id]);else fcList=questions.filter(q=>q.cat===s.flashcardCat);if(fcList.length===0)fcList=[...questions]}
+function renderFcCatTags(){const cats=[...categories,{id:'unmastered',name:'未背诵',icon:'🆕'}],s=getState(),container=document.getElementById('fcCatTags');container.innerHTML=cats.map(c=>`<span class="cat-tag${s.flashcardCat===c.id?' active':''}" data-cat="${c.id}">${c.icon} ${c.name}</span>`).join('');container.querySelectorAll('.cat-tag').forEach(tag=>{tag.addEventListener('click',()=>{const s=getState();s.flashcardCat=tag.dataset.cat;saveState(s);renderFcCatTags();updateFcList();fcIndex=0;fcFlipped=false;renderFlashcard()})})}
+function renderFlashcard(){if(fcList.length===0)updateFcList();const q=fcList[fcIndex]||questions[0],cat=categories.find(c=>c.id===q.cat),s=getState();document.getElementById('fcNum').textContent=`第 ${fcIndex+1}/${fcList.length} 题（ID:${q.id}）`;document.getElementById('fcCat').textContent=`${cat?cat.icon+' '+cat.name:''} · ${q.type}`;document.getElementById('fcQuestion').textContent=q.title;document.getElementById('fcAnswer').innerHTML=q.answer;document.getElementById('fcProgressText').textContent=`${fcIndex+1}/${fcList.length} · 已背诵:${Object.keys(s.flashcarded).length}`;document.getElementById('fcBar').style.width=((fcIndex+1)/fcList.length*100)+'%';document.getElementById('flashcard').classList.remove('flipped');fcFlipped=false}
+function flipFlashcard(){fcFlipped=!fcFlipped;document.getElementById('flashcard').classList.toggle('flipped',fcFlipped)}
+function nextFlashcard(){if(fcIndex<fcList.length-1){fcIndex++;fcFlipped=false;renderFlashcard()}}
+function prevFlashcard(){if(fcIndex>0){fcIndex--;fcFlipped=false;renderFlashcard()}}
+function markMastered(){const q=fcList[fcIndex];if(!q)return;const s=getState();s.flashcarded[q.id]=Date.now();s.mastered[q.id]=Date.now();saveState(s);updateStats();toast('✅ 已标记为掌握！');nextFlashcard()}
+function markUnsure(){const q=fcList[fcIndex];if(!q)return;const s=getState();if(s.wrongBook[q.id])delete s.wrongBook[q.id];else s.wrongBook[q.id]=Date.now();saveState(s);toast(s.wrongBook[q.id]?'❓ 已加入错题本':'已从错题本移除')}
+
+// Flashcard swipe
+(function(){const fc=document.getElementById('flashcardContainer');let sx=0,sy=0;fc.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});fc.addEventListener('touchend',e=>{const dx=(e.changedTouches[0].clientX-sx),dy=(e.changedTouches[0].clientY-sy),absX=Math.abs(dx),absY=Math.abs(dy);if(absX<30&&absY<30)return;if(absX>absY){dx>0?prevFlashcard():nextFlashcard()}else{dy<0?markMastered():markUnsure()}})})();
+
+// Keyboard: flashcard
+document.addEventListener('keydown',e=>{if(document.getElementById('panel-flashcard').classList.contains('active')){if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();nextFlashcard()}if(e.key==='ArrowLeft'){e.preventDefault();prevFlashcard()}if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();flipFlashcard()}if(e.key==='Enter'){e.preventDefault();markMastered()}}});
+
+// ====== QUIZ ======
+let quizState=null;
+document.getElementById('quizTypeGrid').addEventListener('click',e=>{const b=e.target.closest('.quiz-type-btn');if(!b)return;document.querySelectorAll('#quizTypeGrid .quiz-type-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')});
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function startQuiz(){const type=document.querySelector('#quizTypeGrid .quiz-type-btn.selected')?.dataset?.type||'single';let qq=[];if(type==='single')qq=shuffle([...quizBank.single]).slice(0,20).map((q,i)=>({...q,qType:'single',num:i+1}));else if(type==='judge')qq=shuffle([...quizBank.judge]).slice(0,15).map((q,i)=>({...q,qType:'judge',num:i+1}));else if(type==='short')qq=shuffle([...questions]).slice(0,5).map((q,i)=>({...q,qType:'short',num:i+1}));else if(type==='essay')qq=shuffle([...questions]).slice(0,2).map((q,i)=>({...q,qType:'essay',num:i+1}));else{const s=shuffle([...quizBank.single]).slice(0,8).map((q,i)=>({...q,qType:'single',num:i+1})),j=shuffle([...quizBank.judge]).slice(0,5).map((q,i)=>({...q,qType:'judge',num:i+9})),sh=shuffle([...questions]).slice(0,2).map((q,i)=>({...q,qType:'short',num:i+14})),es=shuffle([...questions]).slice(0,1).map((q,i)=>({...q,qType:'essay',num:i+16}));qq=[...s,...j,...sh,...es]}
+quizState={type,questions:qq,answers:{},currentIdx:0,submitted:false,timerSec:0,timerInterval:null};document.getElementById('quizSetup').style.display='none';document.getElementById('quizResult').style.display='none';document.getElementById('quizActive').style.display='block';startTimer();renderQuizQuestion()}
+
+function startTimer(){const total=quizState.questions.length*30;quizState.timerSec=total;showTimer();quizState.timerInterval=setInterval(()=>{quizState.timerSec--;if(quizState.timerSec<=0){clearInterval(quizState.timerInterval);submitQuiz()}showTimer()},1000)}
+function showTimer(){const s=quizState.timerSec,m=Math.floor(s/60),sec=s%60;let el=document.getElementById('quizTimer');if(!el){el=document.createElement('div');el.id='quizTimer';el.className='quiz-timer';document.getElementById('quizActive').prepend(el)}el.textContent=`⏱ ${m}:${String(sec).padStart(2,'0')}`;el.classList.toggle('warning',s<60)}
+
+function renderQuizQuestion(){if(!quizState||quizState.submitted)return;const q=quizState.questions[quizState.currentIdx],total=quizState.questions.length,labels='ABCDEFGH';let dots=quizState.questions.map((_,i)=>`<span class="dot${i===quizState.currentIdx?' current':''}${quizState.answers[quizState.questions[i].num]!==undefined?' done':''}" onclick="goToQuizQ(${i})"></span>`).join('');let html=`<div class="quiz-progress-dots">${dots}</div>`;html+=`<div style="margin-bottom:14px;font-size:13px;color:var(--text-muted)">第 ${q.num}/${total} 题 · ${q.qType==='single'?'🔤 单选题':q.qType==='judge'?'⚖️ 判断题':q.qType==='short'?'📄 简答题':'✍️ 论述题'}</div>`;html+=`<div class="quiz-question-card"><div class="qq-num">#${q.num}</div><div class="qq-text">${q.q||q.title||''}</div>`;const ans=quizState.answers[q.num],locked=ans!==undefined&&(q.qType==='single'||q.qType==='judge');if(q.qType==='single'){html+=q.opts.map((t,i)=>{let cls='quiz-option';if(locked){cls+=' locked';if(i===q.ans)cls+=' correct';if(ans===i&&ans!==q.ans)cls+=' wrong'}else if(ans===i)cls+=' selected';return`<button class="${cls}" data-opt="${i}"><b>${labels[i]}.</b> ${t}</button>`}).join('')}else if(q.qType==='judge'){let clsTrue='quiz-option',clsFalse='quiz-option';if(locked){clsTrue+=' locked';clsFalse+=' locked';if(q.ans===true)clsTrue+=' correct';else clsFalse+=' correct';if(ans===true&&q.ans!==true)clsTrue+=' wrong';if(ans===false&&q.ans!==false)clsFalse+=' wrong'}else{if(ans===true)clsTrue+=' selected';if(ans===false)clsFalse+=' selected'}html+=`<button class="${clsTrue}" data-opt="true">✅ 正确</button><button class="${clsFalse}" data-opt="false">❌ 错误</button>`}else{html+=`<textarea class="quiz-textarea" id="quizAnswer${q.num}" placeholder="在此作答..." oninput="saveTextAnswer(${q.num},this.value)">${ans||''}</textarea>`}html+=`</div>`;if(locked&&(q.qType==='single'||q.qType==='judge')){html+=`<div style="margin-top:10px;padding:10px 14px;background:rgba(212,168,67,.08);border-radius:var(--radius-sm);font-size:13px;color:var(--gold-light);line-height:1.6">💡 <b>解析：</b>${q.exp||'请参考相关考点。'}</div>`}html+=`<div style="display:flex;gap:12px;justify-content:space-between;margin-top:14px">`;html+=`<button class="fc-btn" onclick="prevQuizQuestion()" ${quizState.currentIdx===0?'disabled':''}>◀ 上一题</button>`;html+=`<button class="fc-btn primary" onclick="nextQuizQuestion()">${quizState.currentIdx===total-1?'📊 提交答卷':'下一题 ▶'}</button></div>`;document.getElementById('quizActive').innerHTML=html;if(document.getElementById('quizTimer'))document.getElementById('quizActive').prepend(document.getElementById('quizTimer'));document.querySelectorAll('.quiz-option:not(.locked)').forEach(btn=>{btn.addEventListener('click',()=>{quizState.answers[q.num]=(q.qType==='single'?parseInt(btn.dataset.opt):btn.dataset.opt==='true');if(q.qType==='single'||q.qType==='judge'){renderQuizQuestion()}else{renderQuizQuestion()}})})}
+function goToQuizQ(i){if(!quizState)return;quizState.currentIdx=i;renderQuizQuestion()}
+function saveTextAnswer(num,val){if(!quizState)return;quizState.answers[num]=val}
+function prevQuizQuestion(){if(!quizState||quizState.currentIdx<=0)return;quizState.currentIdx--;renderQuizQuestion()}
+function nextQuizQuestion(){if(!quizState)return;if(quizState.currentIdx<quizState.questions.length-1){quizState.currentIdx++;renderQuizQuestion()}else submitQuiz()}
+
+// Keyboard: quiz
+document.addEventListener('keydown',e=>{if(!quizState||quizState.submitted)return;if(document.getElementById('panel-quiz').classList.contains('active')){const q=quizState.questions[quizState.currentIdx];if(q.qType==='single'&&!quizState.answers[q.num]!==undefined){const keys=['1','2','3','4','a','b','c','d'];const idx=keys.indexOf(e.key.toLowerCase());if(idx>=0&&idx<q.opts.length){e.preventDefault();quizState.answers[q.num]=idx;renderQuizQuestion()}}if(e.key==='ArrowRight'){e.preventDefault();nextQuizQuestion()}if(e.key==='ArrowLeft'){e.preventDefault();prevQuizQuestion()}if(e.key==='Enter'&&quizState.answers[q.num]!==undefined){e.preventDefault();nextQuizQuestion()}}});
+
+function submitQuiz(){quizState.submitted=true;if(quizState.timerInterval)clearInterval(quizState.timerInterval);let totalScore=0,maxScore=0,correctCount=0;const s=getState();s.quizCount=(s.quizCount||0)+1;quizState.questions.forEach(q=>{if(q.qType==='single'){maxScore+=1;if(quizState.answers[q.num]===q.ans){totalScore++;correctCount++}else s.wrongBook['qbank_'+q.q]=Date.now()}else if(q.qType==='judge'){maxScore+=1;if(quizState.answers[q.num]===q.ans){totalScore++;correctCount++}else s.wrongBook['qbank_'+q.q]=Date.now()}else if(q.qType==='short'){maxScore+=5;const a=(quizState.answers[q.num]||'').trim();if(a.length>10)totalScore+=Math.min(5,Math.floor(a.length/20))}else if(q.qType==='essay'){maxScore+=10;const a=(quizState.answers[q.num]||'').trim();if(a.length>30)totalScore+=Math.min(10,Math.floor(a.length/40))}});saveState(s);updateStats();const pct=Math.round(totalScore/maxScore*100),grade=pct>=90?'🏆 优秀':pct>=75?'👍 良好':pct>=60?'📚 及格':'💪 继续努力';document.getElementById('quizActive').style.display='none';document.getElementById('quizResult').style.display='block';let revHTML=`<div class="quiz-result"><div class="qr-score">${totalScore}<span style="font-size:24px;color:var(--text-muted)">/${maxScore}</span></div><div class="qr-grade">${grade}（${pct}%）</div><p style="color:var(--text-muted)">答对 ${correctCount}/${quizState.questions.filter(q=>q.qType==='single'||q.qType==='judge').length} 题</p><button class="quiz-start-btn" onclick="resetQuiz()" style="margin-bottom:20px">🔄 再来一次</button></div><div class="review-filter"><button class="review-filter-btn active" onclick="filterReview('all')">全部</button><button class="review-filter-btn" onclick="filterReview('wrong')">❌ 只看错题</button></div><div id="reviewList">`;quizState.questions.forEach(q=>{const labels='ABCDEFGH',userAns=quizState.answers[q.num];let isCorrect=false,userAnsStr='未作答',correctAnsStr='';if(q.qType==='single'){isCorrect=userAns===q.ans;userAnsStr=userAns!==undefined?`${labels[userAns]}. ${q.opts[userAns]||''}`:'未作答';correctAnsStr=`${labels[q.ans]}. ${q.opts[q.ans]}`}else if(q.qType==='judge'){isCorrect=userAns===q.ans;userAnsStr=userAns===true?'正确':userAns===false?'错误':'未作答';correctAnsStr=q.ans?'正确':'错误'}else{userAnsStr='已作答（主观题）';isCorrect=true}revHTML+=`<div class="quiz-review-card${isCorrect?' was-correct':' was-wrong'}" data-correct="${isCorrect}"><div class="rv-num">#${q.num} · ${q.qType==='single'?'单选题':q.qType==='judge'?'判断题':q.qType==='short'?'简答题':'论述题'}</div><div class="rv-q">${q.q||q.title||''}</div><div class="rv-your${isCorrect?' correct':''}">你的答案：${userAnsStr}</div>${!isCorrect&&(q.qType==='single'||q.qType==='judge')?`<div class="rv-answer">✅ 正确答案：${correctAnsStr}</div>`:''}${q.exp?`<div class="rv-exp">💡 ${q.exp}</div>`:''}</div>`});revHTML+=`</div>`;document.getElementById('quizResult').innerHTML=revHTML}
+
+function filterReview(type){const cards=document.querySelectorAll('.quiz-review-card');cards.forEach(c=>{if(type==='all')c.style.display='block';else c.style.display=c.dataset.correct==='false'?'block':'none'});document.querySelectorAll('.review-filter-btn').forEach((b,i)=>{b.classList.toggle('active',(type==='all'&&i===0)||(type==='wrong'&&i===1))})}
+
+function resetQuiz(){quizState=null;document.getElementById('quizSetup').style.display='block';document.getElementById('quizActive').style.display='none';document.getElementById('quizResult').style.display='none'}
+
+// ====== WRONG BOOK ======
+function renderWrongBook(){const s=getState(),wrongIds=Object.keys(s.wrongBook).map(Number),container=document.getElementById('wrongList'),empty=document.getElementById('wrongEmpty'),clearBtn=document.getElementById('wrongClear');if(wrongIds.length===0){empty.style.display='block';container.style.display='none';clearBtn.hidden=true;return}empty.style.display='none';container.style.display='flex';clearBtn.hidden=false;const wrongQs=questions.filter(q=>wrongIds.includes(q.id));container.innerHTML=wrongQs.map(q=>{const cat=categories.find(c=>c.id===q.cat);return`<div class="q-card" data-id="${q.id}"><div class="q-header" onclick="this.closest('.q-card').classList.toggle('expanded')"><div class="q-num">${q.id}</div><div><div class="q-title">${q.title}</div><div class="q-meta"><span class="q-badge">${q.type}</span><span class="q-badge gold">${cat?cat.icon+' '+cat.name:''}</span></div></div></div><div class="q-body"><div class="q-answer">${q.answer}</div></div></div>`}).join('')}
+function clearWrongBook(){const s=getState();s.wrongBook={};saveState(s);updateStats();renderWrongBook();toast('🗑️ 错题本已清空')}
+
+// ====== MIND MAP ======
+function seededRand(seed){let s=seed;return function(){s=(s*16807+0)%2147483647;return(s-1)/2147483646}}
+function renderMindMap(){const svg=document.getElementById('mindmap-svg'),W=1100,H=620,cx=W/2,cy=H/2,mainCats=categories.filter(c=>c.id!=='all'),n=mainCats.length,angleStep=(2*Math.PI)/n,R=230;const catPos={};mainCats.forEach((cat,i)=>{const a=angleStep*i-Math.PI/2;catPos[cat.id]={x:cx+R*Math.cos(a),y:cy+R*Math.sin(a),a,i}});let defs=`<defs><radialGradient id="gradMain"><stop offset="0%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--red-light').trim()||'#E8505B'}"/><stop offset="100%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--red-deep').trim()||'#8B0000'}"/></radialGradient><filter id="shadow"><feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#000" flood-opacity=".5"/></filter></defs>`;let els=`<circle cx="${cx}" cy="${cy}" r="${R}" class="mm-ring"/>`;mainCats.forEach(cat=>{const p=catPos[cat.id];els+=`<line class="mm-link" x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}"/>`});const s=getState();questions.forEach(q=>{const cp=catPos[q.cat];if(!cp)return;const qs=questions.filter(oq=>oq.cat===q.cat),idx=qs.indexOf(q),total=qs.length,rnd=seededRand(q.id*137+cp.i*53),arcStart=cp.a-0.4,arcSpan=0.8,frac=(idx+1)/(total+1),ang=arcStart+arcSpan*frac+(rnd()-0.5)*0.12,dist=52+rnd()*22,sx=cp.x+dist*Math.cos(ang),sy=cp.y+dist*Math.sin(ang),mastered=s.mastered[q.id];els+=`<g class="mm-node" data-qid="${q.id}" onclick="goToQuestion(${q.id})" onmouseenter="showMmTip(event,'${q.title.replace(/'/g,"\\'").slice(0,40)}')" onmouseleave="hideMmTip()"><circle cx="${sx}" cy="${sy}" r="${mastered?5:3.5}" fill="${mastered?'var(--gold)':'var(--red-light)'}" opacity="${mastered?1:.55}"/></g>`});els+=`<g class="mm-node main-node" style="cursor:default;filter:url(#shadow)"><circle cx="${cx}" cy="${cy}" r="38" fill="url(#gradMain)" stroke="var(--gold)" stroke-width="2"/><text x="${cx}" y="${cy-5}" font-size="17" font-weight="700" fill="#fff">习思想</text><text x="${cx}" y="${cy+14}" font-size="11" fill="rgba(255,255,255,.75)">${questions.length}个考点</text></g>`;mainCats.forEach(cat=>{const p=catPos[cat.id],count=questions.filter(q=>q.cat===cat.id).length,mastered=questions.filter(q=>q.cat===cat.id&&s.mastered[q.id]).length;els+=`<g class="mm-node cat-node" data-cat="${cat.id}" onclick="goToCategory('${cat.id}')" onmouseenter="showMmTip(event,'${cat.name}：${count}考点|已掌握${mastered}')" onmouseleave="hideMmTip()"><circle cx="${p.x}" cy="${p.y}" r="30" fill="var(--bg-surface)" stroke="var(--gold)" stroke-width="1.8" filter="url(#shadow)"/><text x="${p.x}" y="${p.y-2}" font-size="20">${cat.icon}</text><text x="${p.x}" y="${p.y+40}" class="cat-label">${cat.name}</text><text x="${p.x}" y="${p.y+52}" class="cat-count">${count}题</text></g>`});svg.innerHTML=defs+els}
+function showMmTip(e,text){let tip=document.getElementById('mmTip');if(!tip){tip=document.createElement('div');tip.id='mmTip';tip.className='mm-tooltip';document.querySelector('.mindmap-container').appendChild(tip)}tip.textContent=text;tip.style.opacity='1';const rect=document.querySelector('.mindmap-container').getBoundingClientRect();tip.style.left=(e.clientX-rect.left+14)+'px';tip.style.top=(e.clientY-rect.top-10)+'px'}
+function hideMmTip(){const t=document.getElementById('mmTip');if(t)t.style.opacity='0'}
+function goToCategory(catId){activeCat=catId;searchQuery='';document.getElementById('searchInput').value='';renderCatTags();renderQList();switchPanel('browse')}
+function goToQuestion(qid){activeCat='all';searchQuery='';document.getElementById('searchInput').value='';renderCatTags();renderQList();switchPanel('browse');setTimeout(()=>{const card=document.getElementById('qcard-'+qid);if(card){card.classList.add('expanded');card.scrollIntoView({behavior:'smooth',block:'center'})}},200)}
+
+// ====== INIT ======
+function init(){renderCatTags();renderQList();updateStats()}
+init();
+</script>
+</body>
+</html>
